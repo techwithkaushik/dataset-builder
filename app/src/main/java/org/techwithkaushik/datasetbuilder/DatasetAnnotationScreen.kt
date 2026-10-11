@@ -164,7 +164,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             groupIds = loaded.third.second
             dirtyPaths = emptySet()
             index = index.coerceIn(0, (loaded.first.size - 1).coerceAtLeast(0))
-            status = if (loaded.first.isEmpty()) "Dataset खाली है। Add images दबाकर images जोड़ें।" else "Saved dataset loaded: ${loaded.first.size} images"
+            status = if (loaded.first.isEmpty()) "Dataset is empty. Select Add images to get started." else "Saved dataset loaded: ${loaded.first.size} images"
         } catch (e: Exception) {
             status = "Dataset load failed: " + (e.message ?: "unknown error")
         } finally { busy = false }
@@ -204,7 +204,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             busy = true
             try {
                 withContext(Dispatchers.IO) { writeDatasetZip(context, uri, projectId, configuredClassNames) }
-                onMessage("dataset.zip export हो गया")
+                onMessage("Dataset ZIP exported successfully")
             } catch (e: Exception) { onMessage("Export failed: " + (e.message ?: "unknown error")) }
             finally { busy = false }
         }
@@ -266,7 +266,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         AlertDialog(
             onDismissRequest = { imageToRemove = null },
             title = { Text("Delete this image?") },
-            text = { Text("यह image और इसकी saved annotations dataset से permanently हट जाएँगी। Original source file प्रभावित नहीं होगी।") },
+            text = { Text("This image and its saved annotations will be permanently removed from the dataset. The original source file will remain untouched.") },
             confirmButton = {
                 TextButton(onClick = {
                     val target = imageToRemove
