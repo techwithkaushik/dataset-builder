@@ -12,7 +12,11 @@ import androidx.compose.runtime.*
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val preferences = getSharedPreferences("dataset_projects", MODE_PRIVATE)
+        AppLanguageState.language = preferences.getString("app_language", "English") ?: "English"
         setContent {
+            val appLanguage = AppLanguageState.language
+            CompositionLocalProvider(LocalAppLanguage provides appLanguage) {
             MaterialTheme {
                 Surface {
                     var openedProject by remember { mutableStateOf<Triple<String, String, List<String>>?>(null) }
@@ -33,6 +37,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+            }
             }
         }
     }
