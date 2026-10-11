@@ -29,6 +29,8 @@ import java.util.Date
 import java.util.UUID
 
 private val brand = Color(0xFF145DDE)
+private val canvas = Color(0xFFF4F7FC)
+private val cardBorder = Color(0xFFE2E9F4)
 private data class Project(val id: String, val name: String, val description: String, val labels: List<String>, val updated: Long)
 
 @Composable
@@ -63,18 +65,29 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
         settings = false; create = false; edit = null; delete = null
     }
     Scaffold(
+        containerColor = canvas,
         topBar = {
-            TopAppBar(
-                title = { Column { Text("Dataset Builder", fontWeight = FontWeight.Bold); Text("Create, manage and annotate datasets", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
-                navigationIcon = { Icon(Icons.Default.Hub, null, tint = brand, modifier = Modifier.padding(start = 16.dp).size(26.dp)) },
-                actions = { IconButton(onClick = { settings = true; tab = 2 }) { Icon(Icons.Default.Settings, "Settings") }; IconButton(onClick = { settings = true; tab = 2 }) { Icon(Icons.Default.MoreVert, "More") } }
-            )
+            Surface(color = Color.White, shadowElevation = 1.dp) {
+                Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 18.dp, end = 12.dp, top = 12.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(color = brand.copy(alpha = .10f), shape = RoundedCornerShape(14.dp), modifier = Modifier.size(42.dp)) {
+                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Hub, null, tint = brand, modifier = Modifier.size(25.dp)) }
+                    }
+                    Column(Modifier.weight(1f).padding(start = 11.dp)) {
+                        Text("Dataset Builder", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
+                        Text("Create, manage and annotate datasets", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B))
+                    }
+                    IconButton(onClick = { settings = true; tab = 2 }) { Icon(Icons.Default.Settings, "Settings", tint = Color(0xFF263449)) }
+                    Surface(color = brand, shape = RoundedCornerShape(50), modifier = Modifier.size(34.dp)) {
+                        Box(contentAlignment = Alignment.Center) { Text("D", color = Color.White, fontWeight = FontWeight.Bold) }
+                    }
+                }
+            }
         },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(tab == 0, { tab = 0; settings = false }, icon = { Icon(Icons.Default.FolderOpen, null) }, label = { Text("Datasets") })
-                NavigationBarItem(tab == 1, { tab = 1; settings = false }, icon = { Icon(Icons.Default.Insights, null) }, label = { Text("Stats") })
-                NavigationBarItem(tab == 2, { tab = 2; settings = true }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
+            NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
+                NavigationBarItem(tab == 0, { tab = 0; settings = false }, icon = { Icon(Icons.Default.FolderOpen, null) }, label = { Text("Datasets") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
+                NavigationBarItem(tab == 1, { tab = 1; settings = false }, icon = { Icon(Icons.Default.Insights, null) }, label = { Text("Stats") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
+                NavigationBarItem(tab == 2, { tab = 2; settings = true }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
             }
         },
         floatingActionButton = { if (tab == 0 && !settings) ExtendedFloatingActionButton(onClick = { create = true }, icon = { Icon(Icons.Default.Add, null) }, text = { Text("Create Dataset") }, containerColor = brand, contentColor = Color.White) }
@@ -87,12 +100,15 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                 Text("Annotation classes: " + projects.sumOf { it.labels.size })
             }
             else -> Column(Modifier.fillMaxSize().padding(pad)) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(query, { query = it }, Modifier.weight(1f), singleLine = true, placeholder = { Text("Search datasets...") }, leadingIcon = { Icon(Icons.Default.Search, null) }, shape = RoundedCornerShape(16.dp))
-                    IconButton(onClick = { filter = if (filter == "All") "Recent" else "All" }) { Icon(Icons.Default.FilterList, "Filter") }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(query, { query = it }, Modifier.weight(1f), singleLine = true, placeholder = { Text("Search datasets…", style = MaterialTheme.typography.bodyMedium) }, leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF52647D)) }, shape = RoundedCornerShape(24.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = cardBorder, focusedBorderColor = brand))
+                    Spacer(Modifier.width(8.dp))
+                    FilledIconButton(onClick = { filter = if (filter == "All") "Recent" else "All" }, shape = RoundedCornerShape(15.dp), colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White, contentColor = Color(0xFF263449)), modifier = Modifier.size(52.dp)) { Icon(Icons.Default.FilterList, "Filter") }
                 }
-                Row(Modifier.padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    listOf("All", "Recent", "A–Z", "Modified").forEach { FilterChip(filter == it, { filter = it }, label = { Text(it) }) }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("All", "Recent", "A–Z", "Modified").forEach { item ->
+                        FilterChip(selected = filter == item, onClick = { filter = item }, label = { Text(item, fontWeight = if (filter == item) FontWeight.Bold else FontWeight.Medium) }, shape = RoundedCornerShape(22.dp), colors = FilterChipDefaults.filterChipColors(selectedContainerColor = brand, selectedLabelColor = Color.White, containerColor = Color.White), border = FilterChipDefaults.filterChipBorder(enabled = true, selected = filter == item, borderColor = cardBorder, selectedBorderColor = brand))
+                    }
                 }
                 val visible = projects.filter { it.name.contains(query, true) || it.description.contains(query, true) }
                     .let { list -> if (filter == "A–Z") list.sortedBy { it.name.lowercase() } else if (filter == "Recent" || filter == "Modified") list.sortedByDescending { it.updated } else list }
@@ -107,9 +123,9 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                         val projectRoot = java.io.File(context.filesDir, "dataset-projects/${p.id}")
                         val imageCount = remember(p.id) { java.io.File(projectRoot, "train/images").listFiles()?.count { it.isFile && it.extension.lowercase() in listOf("jpg", "jpeg", "png", "webp") } ?: 0 }
                         val savedCount = remember(p.id, imageCount) { java.io.File(projectRoot, "train/labels").listFiles()?.count { it.isFile && it.extension.equals("txt", true) } ?: 0 }
-                        ElevatedCard(onClick = { onOpen(p) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+                        Card(onClick = { onOpen(p) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = androidx.compose.foundation.BorderStroke(1.dp, cardBorder)) {
                             Row(Modifier.padding(13.dp), verticalAlignment = Alignment.Top) {
-                                Surface(color = brand.copy(alpha = .10f), shape = RoundedCornerShape(14.dp), modifier = Modifier.size(56.dp)) {
+                                Surface(color = brand.copy(alpha = .09f), shape = RoundedCornerShape(14.dp), modifier = Modifier.size(64.dp)) {
                                     Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Folder, null, tint = brand, modifier = Modifier.size(32.dp)) }
                                 }
                                 Spacer(Modifier.width(12.dp))
@@ -117,10 +133,10 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                                     Text(p.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Text(p.description.ifBlank { "No description added" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Spacer(Modifier.height(8.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        AssistChip(onClick = {}, label = { Text(p.labels.size.toString() + " Classes") }, leadingIcon = { Icon(Icons.Default.Label, null) })
-                                        AssistChip(onClick = {}, label = { Text(imageCount.toString() + " Images") }, leadingIcon = { Icon(Icons.Default.Image, null) })
-                                        AssistChip(onClick = {}, label = { Text(savedCount.toString() + " Saved") }, leadingIcon = { Icon(Icons.Default.CheckCircle, null) })
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        DatasetMetaPill(Icons.Default.Image, "${imageCount} images", Color(0xFF1768E8))
+                                        DatasetMetaPill(Icons.Default.Label, "${p.labels.size} classes", Color(0xFF8E44AD))
+                                        DatasetMetaPill(Icons.Default.CheckCircle, "${savedCount} saved", Color(0xFF168B58))
                                     }
                                     Text("Updated " + DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(p.updated)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
@@ -143,6 +159,16 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
     if (create) ProjectDialog(null, { create = false }) { n, d, l -> save(n, d, l, null); create = false }
     edit?.let { old -> ProjectDialog(old, { edit = null }) { n, d, l -> save(n, d, l, old); edit = null } }
     delete?.let { p -> AlertDialog(onDismissRequest = { delete = null }, title = { Text("Delete dataset?") }, text = { Text("Project details for “" + p.name + "” will be removed.") }, confirmButton = { TextButton(onClick = { persist(projects.filterNot { it.id == p.id }); delete = null }) { Text("Delete", color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { delete = null }) { Text("Cancel") } }) }
+}
+
+@Composable
+private fun DatasetMetaPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, tint: Color) {
+    Surface(color = tint.copy(alpha = .09f), shape = RoundedCornerShape(9.dp)) {
+        Row(Modifier.padding(horizontal = 7.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(13.dp))
+            Text(label, color = tint, style = MaterialTheme.typography.labelSmall, maxLines = 1, fontWeight = FontWeight.SemiBold)
+        }
+    }
 }
 
 @Composable
