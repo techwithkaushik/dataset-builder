@@ -15,11 +15,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface {
-                    var openedProject by remember { mutableStateOf<Pair<String, String>?>(null) }
+                    var openedProject by remember { mutableStateOf<Triple<String, String, List<String>>?>(null) }
                     val currentProject = openedProject
                     BackHandler(enabled = currentProject != null) { openedProject = null }
                     if (currentProject == null) {
-                        DatasetHomeEntry(this) { projectId, projectName -> openedProject = projectId to projectName }
+                        DatasetHomeEntry(this) { projectId, projectName, classes -> openedProject = Triple(projectId, projectName, classes) }
                     } else {
                         DatasetAnnotationScreen(
                             images = emptyList(),
@@ -29,6 +29,7 @@ class MainActivity : ComponentActivity() {
                             },
                             projectId = currentProject.first,
                             projectName = currentProject.second,
+                            classNames = currentProject.third,
                         )
                     }
                 }
