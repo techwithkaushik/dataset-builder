@@ -492,20 +492,26 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                             val centroid = pressed.map { it.position }.reduce { a, b -> a + b } / pressed.size.toFloat()
                                             val distance = pressed.sumOf { (it.position - centroid).getDistance().toDouble() }.toFloat() / pressed.size
                                             if (previousDistance > 0f && distance > 0f) {
-                                                val nextScale = (zoomScale * (distance / previousDistance)).coerceIn(1f, 4f)
+                                                val oldScale = zoomScale
+                                                val nextScale = (oldScale * (distance / previousDistance)).coerceIn(1f, 4f)
+                                                val center = Offset(size.width / 2f, size.height / 2f)
+                                                val pan = centroid - previousCentroid
+                                                val focus = centroid - center
+                                                val factor = nextScale / oldScale
+                                                val proposedOffset = Offset(
+                                                    focus.x + pan.x + (zoomOffset.x - focus.x) * factor,
+                                                    focus.y + pan.y + (zoomOffset.y - focus.y) * factor,
+                                                )
                                                 zoomScale = nextScale
-                                                if (nextScale <= 1f) zoomOffset = Offset.Zero
-                                                else {
+                                                if (nextScale <= 1f) {
+                                                    zoomOffset = Offset.Zero
+                                                } else {
                                                     val fitScale = minOf(size.width.toFloat() / bitmap.width, size.height.toFloat() / bitmap.height)
                                                     val imageW = bitmap.width * fitScale * nextScale
                                                     val imageH = bitmap.height * fitScale * nextScale
                                                     val maxX = ((imageW - size.width) / 2f).coerceAtLeast(0f)
                                                     val maxY = ((imageH - size.height) / 2f).coerceAtLeast(0f)
-                                                    val pan = centroid - previousCentroid
-                                                    zoomOffset = Offset(
-                                                        (zoomOffset.x + pan.x).coerceIn(-maxX, maxX),
-                                                        (zoomOffset.y + pan.y).coerceIn(-maxY, maxY),
-                                                    )
+                                                    zoomOffset = Offset(proposedOffset.x.coerceIn(-maxX, maxX), proposedOffset.y.coerceIn(-maxY, maxY))
                                                 }
                                             }
                                             previousDistance = distance
