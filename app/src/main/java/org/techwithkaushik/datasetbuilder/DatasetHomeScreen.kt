@@ -67,7 +67,7 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
     Scaffold(
         containerColor = canvas,
         topBar = {
-            Surface(color = Color.White, shadowElevation = 1.dp) {
+            if (!settings && tab != 2) Surface(color = Color.White, shadowElevation = 1.dp) {
                 Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 18.dp, end = 12.dp, top = 12.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = brand.copy(alpha = .10f), shape = RoundedCornerShape(14.dp), modifier = Modifier.size(42.dp)) {
                         Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Hub, null, tint = brand, modifier = Modifier.size(25.dp)) }
@@ -84,7 +84,7 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
             }
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
+            if (!settings && tab != 2) NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
                 NavigationBarItem(tab == 0, { tab = 0; settings = false }, icon = { Icon(Icons.Default.FolderOpen, null) }, label = { Text("Datasets") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
                 NavigationBarItem(tab == 1, { tab = 1; settings = false }, icon = { Icon(Icons.Default.Insights, null) }, label = { Text("Stats") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
                 NavigationBarItem(tab == 2, { tab = 2; settings = true }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
@@ -138,7 +138,11 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                                         DatasetMetaPill(Icons.Default.Label, "${p.labels.size} classes", Color(0xFF8E44AD))
                                         DatasetMetaPill(Icons.Default.CheckCircle, "${savedCount} saved", Color(0xFF168B58))
                                     }
-                                    Text("Updated " + DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(p.updated)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(Modifier.height(4.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Icon(Icons.Default.Schedule, null, tint = Color(0xFF64748B), modifier = Modifier.size(13.dp))
+                                        Text("Updated " + formatUpdated(p.updated), style = MaterialTheme.typography.labelSmall, color = Color(0xFF52647D), fontWeight = FontWeight.Medium)
+                                    }
                                 }
                                 var expanded by remember { mutableStateOf(false) }
                                 Box {
@@ -159,6 +163,20 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
     if (create) ProjectDialog(null, { create = false }) { n, d, l -> save(n, d, l, null); create = false }
     edit?.let { old -> ProjectDialog(old, { edit = null }) { n, d, l -> save(n, d, l, old); edit = null } }
     delete?.let { p -> AlertDialog(onDismissRequest = { delete = null }, title = { Text("Delete dataset?") }, text = { Text("Project details for “" + p.name + "” will be removed.") }, confirmButton = { TextButton(onClick = { persist(projects.filterNot { it.id == p.id }); delete = null }) { Text("Delete", color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { delete = null }) { Text("Cancel") } }) }
+}
+
+private fun formatUpdated(timestamp: Long): String {
+    if (timestamp <= 0L) return "date unavailable"
+    val delta = (System.currentTimeMillis() - timestamp).coerceAtLeast(0L)
+    val relative = when {
+        delta < 60_000L -> "just now"
+        delta < 3_600_000L -> "${delta / 60_000L} min ago"
+        delta < 86_400_000L -> "${delta / 3_600_000L} hr ago"
+        delta < 2 * 86_400_000L -> "yesterday"
+        delta < 7 * 86_400_000L -> "${delta / 86_400_000L} days ago"
+        else -> DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(timestamp))
+    }
+    return DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(timestamp)) + " · " + relative
 }
 
 @Composable
