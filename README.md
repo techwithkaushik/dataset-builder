@@ -1,15 +1,24 @@
 # Dataset Builder
 
-Standalone Android app for manually creating and annotating image datasets for Photo and Signature detection.
+A standalone Android app for creating, managing, and annotating image datasets for object-detection and computer-vision tasks.
 
 ## Features
 
-- Create, edit, duplicate, and delete dataset projects.
-- Persist project images and YOLO annotations between app sessions.
-- Import multiple images, browse the image library, remove images, and edit annotations.
-- Draw and save bounding boxes for **Photo** (class ID `0`) and **Signature** (class ID `1`).
-- Export a YOLO-format ZIP with `data.yaml`, image/label splits, and dataset quality guidance.
-- Group related forms so images from the same form stay in one dataset split.
+- Create multiple projects with custom class names.
+- Configure any number of annotation classes; YOLO class IDs follow the order entered in project setup, starting at `0`.
+- Import multiple images, browse thumbnails, remove imported copies, and edit bounding boxes.
+- Persist project images and annotations between app sessions.
+- Export a YOLO-format ZIP with `data.yaml`, image/label splits, and generic annotation guidance.
+- Group related images so they stay together in a dataset split.
+- Supports positive and negative samples; images with no boxes export with an empty label file.
+
+## Configure classes
+
+When creating or editing a project, enter comma-separated class names, for example:
+
+`Person, Vehicle, Animal`
+
+The names and order are project-specific. The exported `data.yaml` contains the exact class names and matching IDs.
 
 ## Build
 
