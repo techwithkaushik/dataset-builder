@@ -316,123 +316,52 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             }
         },
         bottomBar = {
-            if (!fullScreen) Surface(color = Color.White, shadowElevation = 8.dp) {
-                Column(
-                    Modifier.fillMaxWidth()
-                        .heightIn(max = 390.dp)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (!fullScreen && builderTab == "Annotate") Surface(color = Color.White, shadowElevation = 8.dp) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Annotations (\${boxes.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
+                        TextButton(onClick = { builderMenu = true }) { Text("Manage", color = Color(0xFF145DDE)) }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         classes.forEach { cls ->
                             val count = boxes.count { it.type == cls }
-                            FilterChip(
-                                selected = selected == cls,
-                                onClick = { selected = cls },
-                                label = { Text("${cls.title}  $count", maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold) },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(11.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = cls.color,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = cls.color.copy(alpha = .09f),
-                                    labelColor = cls.color,
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = selected == cls,
-                                    borderColor = cls.color.copy(alpha = .28f),
-                                    selectedBorderColor = cls.color,
-                                ),
-                            )
+                            Row(Modifier.weight(1f).heightIn(min = 34.dp).clip(RoundedCornerShape(10.dp)).background(cls.color.copy(alpha = .09f)).border(1.dp, cls.color.copy(alpha = .16f), RoundedCornerShape(10.dp)).clickable { selected = cls }.padding(horizontal = 7.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Box(Modifier.size(10.dp).background(cls.color, RoundedCornerShape(50)))
+                                Text(cls.title, modifier = Modifier.weight(1f), maxLines = 1, style = MaterialTheme.typography.labelSmall, color = Color(0xFF27364A))
+                                Text("$count", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = cls.color)
+                            }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = {
-                                if (boxes.isNotEmpty()) {
-                                    image?.let {
-                                        annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1))
-                                        if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath
-                                    }
-                                    activeBox = null
-                                    status = "आखिरी box हटाया गया"
-                                }
-                            },
-                            enabled = boxes.isNotEmpty() && !busy,
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
-                            shape = RoundedCornerShape(8.dp),
-                        ) { Text("Undo") }
-                        OutlinedButton(
-                            onClick = {
-                                image?.let {
-                                    annotationsByImage = annotationsByImage + (it.absolutePath to emptyList())
-                                    if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath
-                                }
-                                activeBox = null
-                                status = "सभी boxes हटे। दोबारा mark करके Save करें; बदले हुए dataset को export से पहले save करना जरूरी है।"
-                            },
-                            enabled = boxes.isNotEmpty() && !busy,
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
-                            shape = RoundedCornerShape(8.dp),
-                        ) { Text("Clear") }
-                    }
-                    OutlinedTextField(value = formGroupId, onValueChange = { formGroupId = it }, label = { Text("Group ID") }, supportingText = { Text("Use the same ID for related images that should stay in the same split.") }, singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), enabled = !busy)
-                    val oversized = boxes.count { (it.r - it.l) * (it.b - it.t) > 0.75f }
-                    val tiny = boxes.count { (it.r - it.l) * (it.b - it.t) < 0.0005f || it.r - it.l < 0.005f || it.b - it.t < 0.005f }
-                    if (oversized > 0 || tiny > 0) Text("Review annotations: $oversized unusually large and $tiny very small box(es).", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    Text("Objects annotated: ${boxes.size}  •  Classes: ${classes.size}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Annotation progress", style = MaterialTheme.typography.labelMedium, color = Color(0xFF52647D), modifier = Modifier.weight(1f))
-                        Text("$saved / ${libraryImages.size} saved", style = MaterialTheme.typography.labelMedium, color = Color(0xFF145DDE), fontWeight = FontWeight.Bold)
+                        Text("Images (\${libraryImages.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
+                        TextButton(onClick = { builderTab = "Images" }) { Text("Sort: Name ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
+                        androidx.compose.material3.IconButton(onClick = { builderTab = "Images" }, modifier = Modifier.size(34.dp)) { Text("⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
                     }
-                    LinearProgressIndicator(
-                        progress = { if (libraryImages.isEmpty()) 0f else saved.toFloat() / libraryImages.size.toFloat() },
-                        modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)),
-                        color = Color(0xFF145DDE),
-                        trackColor = Color(0xFFE7EDF7),
-                    )
-                    LazyRow(state = thumbnailListState, horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
+                    LazyRow(state = thumbnailListState, horizontalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(vertical = 1.dp)) {
                         items(libraryImages, key = { it.absolutePath }) { item ->
                             val itemIndex = libraryImages.indexOf(item)
-                            val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) {
-                                value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) }
-                            }
+                            val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
                             val thumb = thumbState.value
                             DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
-                            Column(
-                                Modifier.width(84.dp)
-                                    .background(if (itemIndex == index) Color(0xFFEAF1FF) else Color(0xFFF8FAFD), RoundedCornerShape(12.dp))
-                                    .border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFE2E9F4), RoundedCornerShape(12.dp))
-                                    .clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }
-                                    .padding(5.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(3.dp),
-                            ) {
-                                if (thumb != null) Image(
-                                    bitmap = thumb.asImageBitmap(),
-                                    contentDescription = item.name,
-                                    modifier = Modifier.fillMaxWidth().height(76.dp).clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.Crop,
-                                ) else Box(Modifier.fillMaxWidth().height(70.dp), contentAlignment = Alignment.Center) { Text("?", style = MaterialTheme.typography.titleMedium) }
-                                Text(
-                                    "${if (item.absolutePath in savedPaths) "✓" else "○"} ${itemIndex + 1}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    maxLines = 1,
-                                )
+                            Column(Modifier.width(76.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Box(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
+                                    if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
+                                    if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                                }
+                                Text(item.name, maxLines = 1, style = MaterialTheme.typography.labelSmall, color = Color(0xFF182230))
                             }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { if (index > 0) { index--; activeBox = null; status = "पिछले form के saved boxes जाँचें" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text("Previous") }
-                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text(if (index < libraryImages.lastIndex) "Save & Next" else "Save Form") }
-                        OutlinedButton(onClick = { confirmRemove = true }, enabled = image != null && !busy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text("Remove image") }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { if (index > 0) { index--; activeBox = null; status = "Previous image" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 9.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F4FA), contentColor = Color(0xFF17243A)), border = null) { Text("←  Previous", fontWeight = FontWeight.SemiBold) }
+                        Text("\${if (libraryImages.isEmpty()) 0 else index + 1} / \${libraryImages.size}", modifier = Modifier.widthIn(min = 54.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = Color(0xFF26364C))
+                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy && index < libraryImages.lastIndex, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 9.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { Text("Next  →", fontWeight = FontWeight.SemiBold) }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { zipLauncher.launch("dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text(if (dirtyPaths.isNotEmpty()) "Save edits first" else if (saved != libraryImages.size) "Save all images first" else "Export dataset.zip") }
-                        OutlinedButton(onClick = onExit, enabled = !busy, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text("Finish") }
-                    }
+                }
+            } else if (!fullScreen) Surface(color = Color.White, shadowElevation = 4.dp) {
+                Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { builderTab = "Annotate" }, modifier = Modifier.weight(1f)) { Text("Back to annotation") }
+                    Button(onClick = { zipLauncher.launch("dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f)) { Text("Export ZIP") }
                 }
             }
         }
