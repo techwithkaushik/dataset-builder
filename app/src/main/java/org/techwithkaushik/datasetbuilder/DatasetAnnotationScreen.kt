@@ -53,9 +53,10 @@ private data class LabelBox(val type: LabelClass, val l: Float, val t: Float, va
 internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onMessage: (String) -> Unit, projectId: String = "default", projectName: String = "Dataset", classNames: List<String> = listOf("Object")) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val classes = remember(classNames) {
+    val configuredClassNames = classNames.map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { listOf("Object") }
+    val classes = remember(configuredClassNames) {
         val palette = listOf(Color(0xFF1768E8), Color(0xFF168B58), Color(0xFFE67E22), Color(0xFF8E44AD), Color(0xFF008B8B), Color(0xFFC0392B), Color(0xFF596275), Color(0xFFB33939))
-        classNames.mapIndexed { i, name -> LabelClass(i, name, palette[i % palette.size]) }
+        configuredClassNames.mapIndexed { i, name -> LabelClass(i, name, palette[i % palette.size]) }
     }
     var libraryImages by remember { mutableStateOf<List<File>>(emptyList()) }
     var index by remember { mutableIntStateOf(0) }
@@ -178,7 +179,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         if (uri != null) scope.launch {
             busy = true
             try {
-                withContext(Dispatchers.IO) { writeDatasetZip(context, uri, projectId, classNames) }
+                withContext(Dispatchers.IO) { writeDatasetZip(context, uri, projectId, configuredClassNames) }
                 onMessage("dataset.zip export हो गया")
             } catch (e: Exception) { onMessage("Export failed: " + (e.message ?: "unknown error")) }
             finally { busy = false }
@@ -340,12 +341,10 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         ) { Text("Clear") }
                     }
                     OutlinedTextField(value = formGroupId, onValueChange = { formGroupId = it }, label = { Text("Group ID") }, supportingText = { Text("Use the same ID for related images that should stay in the same split.") }, singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), enabled = !busy)
-                    val photoBoxes = boxes.filter { it.type == LabelClass.PHOTO }
-                    val signBoxes = boxes.filter { it.type == LabelClass.SIGNATURE }
-                    val oversized = boxes.filter { b -> (b.r - b.l) * (b.b - b.t) > if (b.type == LabelClass.PHOTO) 0.45f else 0.20f }
-                    val tinySigns = signBoxes.filter { (it.r - it.l) * (it.b - it.t) < 0.0005f || it.r - it.l < 0.01f || it.b - it.t < 0.01f }
-                    if (oversized.isNotEmpty() || tinySigns.isNotEmpty()) Text("Label review: " + (if (oversized.isNotEmpty()) "${oversized.size} unusually large box(es); " else "") + (if (tinySigns.isNotEmpty()) "${tinySigns.size} very small signature box(es)." else "check boxes against the actual object."), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    Text("This image  •  Photo ${photoBoxes.size}  •  Signature ${signBoxes.size}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    val oversized = boxes.count { (it.r - it.l) * (it.b - it.t) > 0.75f }
+                    val tiny = boxes.count { (it.r - it.l) * (it.b - it.t) < 0.0005f || it.r - it.l < 0.005f || it.b - it.t < 0.005f }
+                    if (oversized > 0 || tiny > 0) Text("Review annotations: $oversized unusually large and $tiny very small box(es).", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text("Objects annotated: ${boxes.size}  •  Classes: ${classes.size}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     Text("$saved/${libraryImages.size} saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     LazyRow(state = thumbnailListState, horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
                         items(libraryImages, key = { it.absolutePath }) { item ->
@@ -588,7 +587,7 @@ private fun writeDatasetZip(context: Context, uri: Uri, projectId: String, class
     }
     val groups = groupByImage.values.distinct().sorted()
     require(groups.size >= 3) {
-        "At least 3 distinct Form Group IDs are required for train/validation/test. Current groups: ${groups.size}. Use the same ID only for photos of the same original form."
+        "At least 3 distinct Group IDs are required for train/validation/test. Current groups: ${groups.size}. Use the same ID for related images that should stay together."
     }
     val splitByGroup = groups.mapIndexed { index, group ->
         group to when {
