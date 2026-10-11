@@ -481,21 +481,41 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     .clip(RoundedCornerShape(if (fullScreen) 0.dp else 16.dp))
                     .background(Color(0xFF101216))
                     .pointerInput(fullScreen, index) {
-                        detectTransformGestures { _, pan, zoomChange, _ ->
-                            if (fullScreen) {
-                                val nextScale = (zoomScale * zoomChange).coerceIn(1f, 4f)
-                                zoomScale = nextScale
-                                if (nextScale <= 1f) zoomOffset = Offset.Zero
-                                else {
-                                    val fitScale = minOf(size.width.toFloat() / bitmap.width, size.height.toFloat() / bitmap.height)
-                                    val imageW = bitmap.width * fitScale * nextScale
-                                    val imageH = bitmap.height * fitScale * nextScale
-                                    val maxX = ((imageW - size.width) / 2f).coerceAtLeast(0f)
-                                    val maxY = ((imageH - size.height) / 2f).coerceAtLeast(0f)
-                                    zoomOffset = Offset(
-                                        (zoomOffset.x + pan.x).coerceIn(-maxX, maxX),
-                                        (zoomOffset.y + pan.y).coerceIn(-maxY, maxY),
-                                    )
+                        if (fullScreen) {
+                            awaitEachGesture {
+                                awaitPointerEventScope {
+                                    var previousDistance = 0f
+                                    var previousCentroid = Offset.Zero
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        val pressed = event.changes.filter { it.pressed }
+                                        if (pressed.size >= 2) {
+                                            val centroid = pressed.map { it.position }.reduce { a, b -> a + b } / pressed.size.toFloat()
+                                            val distance = pressed.sumOf { (it.position - centroid).getDistance().toDouble() }.toFloat() / pressed.size
+                                            if (previousDistance > 0f && distance > 0f) {
+                                                val nextScale = (zoomScale * (distance / previousDistance)).coerceIn(1f, 4f)
+                                                zoomScale = nextScale
+                                                if (nextScale <= 1f) zoomOffset = Offset.Zero
+                                                else {
+                                                    val fitScale = minOf(size.width.toFloat() / bitmap.width, size.height.toFloat() / bitmap.height)
+                                                    val imageW = bitmap.width * fitScale * nextScale
+                                                    val imageH = bitmap.height * fitScale * nextScale
+                                                    val maxX = ((imageW - size.width) / 2f).coerceAtLeast(0f)
+                                                    val maxY = ((imageH - size.height) / 2f).coerceAtLeast(0f)
+                                                    val pan = centroid - previousCentroid
+                                                    zoomOffset = Offset(
+                                                        (zoomOffset.x + pan.x).coerceIn(-maxX, maxX),
+                                                        (zoomOffset.y + pan.y).coerceIn(-maxY, maxY),
+                                                    )
+                                                }
+                                            }
+                                            previousDistance = distance
+                                            previousCentroid = centroid
+                                            pressed.forEach { it.consume() }
+                                        } else {
+                                            previousDistance = 0f
+                                        }
+                                    } while (event.changes.any { it.pressed })
                                 }
                             }
                         }
