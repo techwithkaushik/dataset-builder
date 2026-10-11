@@ -503,10 +503,13 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                         // The current centroid already includes two-finger panning.
                                         val center = Offset(size.width / 2f, size.height / 2f)
                                         val focus = centroid - center
+                                        val pan = centroid - previousCentroid
                                         val factor = nextScale / oldScale
+                                        // Scale around the current finger centroid and preserve the
+                                        // centroid movement so vertical and horizontal panning work.
                                         val proposed = Offset(
-                                            focus.x - (focus.x - zoomOffset.x) * factor,
-                                            focus.y - (focus.y - zoomOffset.y) * factor,
+                                            focus.x - (focus.x - zoomOffset.x) * factor + pan.x,
+                                            focus.y - (focus.y - zoomOffset.y) * factor + pan.y,
                                         )
                                         zoomScale = nextScale
                                         if (nextScale <= 1f) zoomOffset = Offset.Zero else {
