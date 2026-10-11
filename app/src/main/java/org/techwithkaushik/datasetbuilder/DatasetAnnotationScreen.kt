@@ -413,7 +413,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             } else if (!fullScreen) Surface(color = Color.White, shadowElevation = 4.dp) {
                 Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { builderTab = "Annotate" }, modifier = Modifier.weight(1f)) { Text("Back to annotation") }
-                    Button(onClick = { zipLauncher.launch("dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f)) { Text("Export ZIP") }
+                    Button(onClick = { zipLauncher.launch("${projectName.trim().ifBlank { "Dataset" }.replace(Regex("[/\\\\:*?\"<>|]"), "_")}-dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f)) { Text("Export ZIP") }
                 }
             }
         }
