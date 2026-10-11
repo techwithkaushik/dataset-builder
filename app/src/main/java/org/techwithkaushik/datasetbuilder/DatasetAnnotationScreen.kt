@@ -73,6 +73,10 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var fullScreen by remember { mutableStateOf(false) }
     var builderTab by remember { mutableStateOf("Annotate") }
     var builderMenu by remember { mutableStateOf(false) }
+    var sortMenu by remember { mutableStateOf(false) }
+    var imageSearch by remember { mutableStateOf("") }
+    var imageSort by remember { mutableStateOf("Name") }
+    var searchVisible by remember { mutableStateOf(false) }
     var formGroupId by remember(index, libraryImages, groupIds) {
         mutableStateOf(libraryImages.getOrNull(index)?.let { groupIds[it.nameWithoutExtension] ?: it.nameWithoutExtension }.orEmpty())
     }
@@ -317,16 +321,16 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         },
         bottomBar = {
             if (!fullScreen && builderTab == "Annotate") Surface(color = Color.White, shadowElevation = 8.dp) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Annotations (${boxes.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
-                        TextButton(onClick = { builderMenu = true }) { Text("Manage", color = Color(0xFF145DDE)) }
+                        TextButton(onClick = { builderMenu = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text("Manage", color = Color(0xFF145DDE)) }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         classes.forEach { cls ->
                             val count = boxes.count { it.type == cls }
-                            Row(Modifier.weight(1f).heightIn(min = 29.dp).clip(RoundedCornerShape(10.dp)).background(cls.color.copy(alpha = .09f)).border(1.dp, cls.color.copy(alpha = .16f), RoundedCornerShape(10.dp)).clickable { selected = cls }.padding(horizontal = 5.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                Box(Modifier.size(10.dp).background(cls.color, RoundedCornerShape(50)))
+                            Row(Modifier.weight(1f).heightIn(min = 29.dp).clip(RoundedCornerShape(10.dp)).background(cls.color.copy(alpha = .09f)).border(1.dp, cls.color.copy(alpha = .16f), RoundedCornerShape(10.dp)).clickable { selected = cls }.padding(horizontal = 5.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(Modifier.size(8.dp).background(cls.color, RoundedCornerShape(50)))
                                 Text(cls.title, modifier = Modifier.weight(1f), maxLines = 1, style = MaterialTheme.typography.labelSmall, color = Color(0xFF27364A))
                                 Text("$count", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = cls.color)
                             }
@@ -334,17 +338,35 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Images (${libraryImages.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
-                        TextButton(onClick = { builderTab = "Images" }) { Text("Sort: Name ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
-                        androidx.compose.material3.IconButton(onClick = { builderTab = "Images" }, modifier = Modifier.size(30.dp)) { Text("⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
+                        Box {
+                            TextButton(onClick = { sortMenu = true }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("Sort: $imageSort ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
+                            DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
+                                listOf("Name", "Newest", "Oldest").forEach { option ->
+                                    DropdownMenuItem(text = { Text(option) }, onClick = { imageSort = option; sortMenu = false })
+                                }
+                            }
+                        }
+                        androidx.compose.material3.IconButton(onClick = { searchVisible = !searchVisible; if (!searchVisible) imageSearch = "" }, modifier = Modifier.size(28.dp)) { Text(if (searchVisible) "×" else "⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
+                    }
+                    if (searchVisible) {
+                        OutlinedTextField(value = imageSearch, onValueChange = { imageSearch = it }, singleLine = true, placeholder = { Text("Search images…") }, modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp), shape = RoundedCornerShape(10.dp), textStyle = MaterialTheme.typography.bodySmall)
+                    }
+                    val visibleImages = remember(libraryImages, imageSearch, imageSort) {
+                        val filtered = libraryImages.filter { it.name.contains(imageSearch.trim(), ignoreCase = true) }
+                        when (imageSort) {
+                            "Newest" -> filtered.sortedByDescending { it.lastModified() }
+                            "Oldest" -> filtered.sortedBy { it.lastModified() }
+                            else -> filtered.sortedBy { it.name.lowercase(Locale.ROOT) }
+                        }
                     }
                     LazyRow(state = thumbnailListState, horizontalArrangement = Arrangement.spacedBy(5.dp), contentPadding = PaddingValues(vertical = 0.dp)) {
-                        items(libraryImages, key = { it.absolutePath }) { item ->
+                        items(visibleImages, key = { it.absolutePath }) { item ->
                             val itemIndex = libraryImages.indexOf(item)
                             val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
                             val thumb = thumbState.value
                             DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
-                            Column(Modifier.width(70.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
+                            Column(Modifier.width(70.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                 }
@@ -352,10 +374,10 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         OutlinedButton(onClick = { if (index > 0) { index--; activeBox = null; status = "Previous image" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 6.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F4FA), contentColor = Color(0xFF17243A)), border = null) { Text("←  Previous", fontWeight = FontWeight.SemiBold) }
                         Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", modifier = Modifier.widthIn(min = 54.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = Color(0xFF26364C))
-                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy && index < libraryImages.lastIndex, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 9.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { Text("Next  →", fontWeight = FontWeight.SemiBold) }
+                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy && index < libraryImages.lastIndex, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 6.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { Text("Next  →", fontWeight = FontWeight.SemiBold) }
                     }
                 }
             } else if (!fullScreen) Surface(color = Color.White, shadowElevation = 4.dp) {
