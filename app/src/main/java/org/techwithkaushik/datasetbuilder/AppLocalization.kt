@@ -2,7 +2,9 @@ package org.techwithkaushik.datasetbuilder
 
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,6 +20,10 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 
 val LocalAppLanguage = compositionLocalOf { "English" }
+
+object AppLanguageState {
+    var language by mutableStateOf("English")
+}
 
 private val translations = mapOf(
     "हिन्दी" to mapOf(
