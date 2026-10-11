@@ -14,6 +14,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -78,6 +80,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var imageSearch by remember { mutableStateOf("") }
     var imageSort by remember { mutableStateOf("Name") }
     var searchVisible by remember { mutableStateOf(false) }
+    var zoomScale by remember(index) { mutableFloatStateOf(1f) }
+    var redoBoxes by remember(index) { mutableStateOf<List<List<LabelBox>>>(emptyList()) }
     var formGroupId by remember(index, libraryImages, groupIds) {
         mutableStateOf(libraryImages.getOrNull(index)?.let { groupIds[it.nameWithoutExtension] ?: it.nameWithoutExtension }.orEmpty())
     }
@@ -465,14 +469,15 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             else BoxWithConstraints(
                 Modifier.fillMaxSize()
                     .clip(RoundedCornerShape(if (fullScreen) 0.dp else 16.dp))
-                    .background(Color(0xFF101216)),
+                    .background(Color(0xFF101216))
+                    .pointerInput(fullScreen, index) { detectTransformGestures { _, _, zoomChange, _ -> if (fullScreen) zoomScale = (zoomScale * zoomChange).coerceIn(1f, 4f) } },
                 contentAlignment = Alignment.Center,
             ) {
                 val w = constraints.maxWidth.toFloat()
                 val h = constraints.maxHeight.toFloat()
                 val scale = minOf(w / bitmap.width, h / bitmap.height)
-                val dw = bitmap.width * scale
-                val dh = bitmap.height * scale
+                val dw = bitmap.width * scale * (if (fullScreen) zoomScale else 1f)
+                val dh = bitmap.height * scale * (if (fullScreen) zoomScale else 1f)
                 val ox = (w - dw) / 2f
                 val oy = (h - dh) / 2f
                 Image(bitmap.asImageBitmap(), "Imported form", Modifier.size(
@@ -540,8 +545,6 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                             Box(Modifier.clickable { fullScreen = false }.padding(horizontal = 4.dp, vertical = 4.dp)) { Text("‹", color = Color.White, style = MaterialTheme.typography.headlineSmall) }
                             Text(image?.name ?: "Image", color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                            Text("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 4.dp), style = MaterialTheme.typography.titleMedium)
-                            Text("⌕", color = Color.White, modifier = Modifier.clickable { searchVisible = !searchVisible }.padding(horizontal = 4.dp), style = MaterialTheme.typography.titleMedium)
                             Text("⛶", color = Color.White, modifier = Modifier.clickable { fullScreen = false }.padding(horizontal = 4.dp), style = MaterialTheme.typography.titleMedium)
                             Button(onClick = { fullScreen = false }, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp), shape = RoundedCornerShape(8.dp)) { Text("Done", style = MaterialTheme.typography.labelMedium) }
                         }
@@ -576,11 +579,14 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 }
                             }
                         }
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                            Text("100%", color = Color.White, style = MaterialTheme.typography.labelMedium)
-                            Text("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 8.dp), style = MaterialTheme.typography.titleLarge)
-                            Text("↻", color = Color.White, modifier = Modifier.clickable { index = index.coerceIn(0, libraryImages.lastIndex); activeBox = null }.padding(horizontal = 8.dp), style = MaterialTheme.typography.titleLarge)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
+                            Text("−", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale - .25f).coerceAtLeast(1f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("${(zoomScale * 100).toInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            Text("+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(4f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("Undo", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 5.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+                            Text("Redo", color = Color.White, modifier = Modifier.clickable { val next = redoBoxes.lastOrNull(); if (next != null) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to next); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; redoBoxes = redoBoxes.dropLast(1); activeBox = null } }.padding(horizontal = 5.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+                            Text("Clear", color = Color(0xFFFF9B9B), modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to emptyList()); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 5.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
