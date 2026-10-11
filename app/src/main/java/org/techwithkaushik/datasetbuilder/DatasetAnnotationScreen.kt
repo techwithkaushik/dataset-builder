@@ -47,7 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.consume
+import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
@@ -485,7 +485,6 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     .pointerInput(fullScreen, index) {
                         if (fullScreen) {
                             awaitEachGesture {
-                                awaitPointerEventScope {
                                     var previousDistance = 0f
                                     var previousCentroid = Offset.Zero
                                     do {
@@ -518,7 +517,6 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                             previousDistance = 0f
                                         }
                                     } while (event.changes.any { it.pressed })
-                                }
                             }
                         }
                     },
