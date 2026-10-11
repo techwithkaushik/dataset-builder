@@ -498,7 +498,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                     val distance = pressed.sumOf { (it.position - centroid).getDistance().toDouble() }.toFloat() / pressed.size
                                     if (fullScreen && previousDistance > 0f && distance > 0f) {
                                         val oldScale = zoomScale.coerceAtLeast(1f)
-                                        val nextScale = (oldScale * distance / previousDistance).coerceIn(1f, 4f)
+                                        val nextScale = (oldScale * distance / previousDistance).coerceIn(1f, 10f)
                                         // Keep the image point under the fingers stable while scaling.
                                         // The current centroid already includes two-finger panning.
                                         val center = Offset(size.width / 2f, size.height / 2f)
@@ -652,7 +652,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
                             Text("−", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale - .25f).coerceAtLeast(1f); if (zoomScale <= 1f) zoomOffset = Offset.Zero }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
                             Text("${(zoomScale * 100).toInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                            Text("+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(4f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
+                            Text("+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(10f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
                             Text("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
                             Text("↷", color = Color.White, modifier = Modifier.clickable { val next = redoBoxes.lastOrNull(); if (next != null) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to next); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; redoBoxes = redoBoxes.dropLast(1); activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
                             Text("⌫", color = Color(0xFFFF9B9B), modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to emptyList()); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
