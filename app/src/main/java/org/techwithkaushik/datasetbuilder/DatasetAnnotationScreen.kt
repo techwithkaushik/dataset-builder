@@ -210,12 +210,14 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         }
     }
 
-    fun saveAndNext() {
+    fun saveCurrent(onSaved: () -> Unit = {}) {
         val current = image ?: return
         val currentBoxes = boxes
         val normalizedGroup = formGroupId.trim().replace("\\t", " ").replace("\\n", " ").replace("\\r", " ")
-        if (normalizedGroup.isBlank()) { status = "Enter a Group ID. Use the same ID for related images that must stay in one split."; return }
-        // Any configured class can be annotated. Empty YOLO label files represent negative samples.
+        if (normalizedGroup.isBlank()) {
+            status = "Enter a Group ID before switching images."
+            return
+        }
         scope.launch {
             busy = true
             try {
@@ -230,22 +232,35 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     File(labelDir, base + ".txt").writeText(text)
                     val groupsFile = File(root, "train/groups.txt")
                     val existing = groupsFile.takeIf { it.isFile }?.readLines().orEmpty()
-                        .filterNot { it.substringBefore("\t") == base }
-                    groupsFile.writeText((existing + "$base\t${normalizedGroup.lowercase(Locale.ROOT)}").joinToString("\n", postfix = "\n"))
+                        .filterNot { it.substringBefore("\\t") == base }
+                    groupsFile.writeText((existing + "$base\\t${normalizedGroup.lowercase(Locale.ROOT)}").joinToString("\n", postfix = "\n"))
                 }
                 annotationsByImage = annotationsByImage + (current.absolutePath to currentBoxes)
                 savedPaths = savedPaths + current.absolutePath
                 groupIds = groupIds + (base to normalizedGroup.lowercase(Locale.ROOT))
                 dirtyPaths = dirtyPaths - current.absolutePath
-                if (index < libraryImages.lastIndex) {
-                    index++
-                    activeBox = null
-                    status = "Next image: annotate only the objects that are present."
-                } else status = "All images reviewed. Export the dataset when ready."
-            } catch (e: Exception) { status = "Save failed: " + (e.message ?: "unknown error") }
-            finally { busy = false }
+                status = "Saved annotations: ${current.name}"
+                onSaved()
+            } catch (e: Exception) {
+                status = "Save failed: " + (e.message ?: "unknown error")
+            } finally {
+                busy = false
+            }
         }
     }
+
+    fun saveAndNext() {
+        if (index >= libraryImages.lastIndex) {
+            saveCurrent { status = "All images reviewed. Export the dataset when ready." }
+        } else {
+            saveCurrent {
+                index++
+                activeBox = null
+                status = "Next image: annotate only the objects that are present."
+            }
+        }
+    }
+
 
     if (confirmRemove) {
         AlertDialog(
@@ -380,7 +395,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
                             val thumb = thumbState.value
                             DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
-                            Column(Modifier.width(58.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Column(Modifier.width(58.dp).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                 Box(Modifier.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
@@ -676,7 +691,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
                                 val thumb = thumbState.value
                                 DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
-                                Box(Modifier.width(66.dp).height(54.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF252A32)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF075BFA) else Color(0xFF525866), RoundedCornerShape(7.dp)).clickable(enabled = !busy) { index = itemIndex; activeBox = null }) {
+                                Box(Modifier.width(66.dp).height(54.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF252A32)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF075BFA) else Color(0xFF525866), RoundedCornerShape(7.dp)).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(2.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(16.dp).background(Color(0xFF075BFA), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Selected", tint = Color.White, modifier = Modifier.size(12.dp)) }
                                 }
