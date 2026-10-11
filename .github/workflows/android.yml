@@ -1,0 +1,77 @@
+name: Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - **
+  pull_request:
+    branches:
+      - **
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build signed APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          submodules: false
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.14.3"
+          cache-provider: enhanced
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          validate-wrappers: false
+
+      - name: Decode Keystore
+        id: keystore
+        uses: timheuer/base64-to-file@v2.0
+        with:
+          fileName: dev_keystore.jks
+          encodedString: ${{ secrets.SIGNING_KEYSTORE }}
+
+      - name: Build signed APK
+        env:
+          SIGN_KEY_STORE: ${{ steps.keystore.outputs.filePath }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:assembleRelease --no-daemon --build-cache --stacktrace
+          else
+            gradle :app:assembleRelease --no-daemon --build-cache --stacktrace
+          fi
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          ls -lh "$APK"
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
+          "$APKSIGNER" verify --verbose "$APK"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataset-builder
+          path: app/build/outputs/apk/release/app-release.apk
