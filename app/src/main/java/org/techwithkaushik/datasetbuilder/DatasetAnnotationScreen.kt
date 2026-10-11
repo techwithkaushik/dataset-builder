@@ -664,11 +664,29 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 5.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                             classes.forEach { cls ->
                                 val count = boxes.count { it.type == cls }
-                                Row(Modifier.widthIn(min = 92.dp).clip(RoundedCornerShape(10.dp)).background(cls.color.copy(alpha = .14f)).border(1.dp, cls.color.copy(alpha = .4f), RoundedCornerShape(10.dp)).clickable { selected = cls }.padding(horizontal = 7.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Box(Modifier.size(8.dp).background(cls.color, RoundedCornerShape(50)))
+                                val isSelected = selected.id == cls.id
+                                Row(
+                                    Modifier
+                                        .widthIn(min = 92.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(cls.color.copy(alpha = if (isSelected) .42f else .14f))
+                                        .border(
+                                            width = if (isSelected) 2.dp else 1.dp,
+                                            color = if (isSelected) cls.color else cls.color.copy(alpha = .4f),
+                                            shape = RoundedCornerShape(10.dp),
+                                        )
+                                        .clickable { selected = cls }
+                                        .padding(horizontal = 7.dp, vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(Modifier.size(if (isSelected) 10.dp else 8.dp).background(cls.color, RoundedCornerShape(50)))
                                     Column {
-                                        LText(cls.title, color = Color.White, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                                        LText("ID: ${cls.id} · $count", color = Color.LightGray, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                        LText(cls.title, color = Color.White, fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                        LText("ID: ${cls.id} · $count", color = if (isSelected) Color.White else Color.LightGray, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                    }
+                                    if (isSelected) {
+                                        Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Selected class", tint = Color.White, modifier = Modifier.size(14.dp))
                                     }
                                 }
                             }
@@ -698,7 +716,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
                                 val thumb = thumbState.value
                                 DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
-                                Box(Modifier.width(66.dp).height(54.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF252A32)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF075BFA) else Color(0xFF525866), RoundedCornerShape(7.dp)).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }) {
+                                Box(Modifier.width(58.dp).height(62.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF252A32)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF075BFA) else Color(0xFF525866), RoundedCornerShape(8.dp)).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(2.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
                                     Box(Modifier.align(Alignment.TopStart).padding(2.dp).size(18.dp).background(Color(0xFFDC2626), RoundedCornerShape(50)).clickable(enabled = !busy) { imageToRemove = item }, contentAlignment = Alignment.Center) { LText("×", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                     if (item.absolutePath in savedPaths) Box(Modifier.align(Alignment.TopEnd).padding(2.dp).size(16.dp).background(Color(0xFF16A34A), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Saved", tint = Color.White, modifier = Modifier.size(11.dp)) }
