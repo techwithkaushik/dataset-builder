@@ -61,8 +61,16 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
         val p = Project(old?.id ?: UUID.randomUUID().toString(), name.trim(), description.trim(), labels, System.currentTimeMillis())
         persist(if (old == null) listOf(p) + projects else projects.map { if (it.id == old.id) p else it })
     }
-    BackHandler(settings || create || edit != null || delete != null) {
-        settings = false; create = false; edit = null; delete = null
+    BackHandler(enabled = settings || tab == 2 || create || edit != null || delete != null) {
+        when {
+            settings || tab == 2 -> {
+                settings = false
+                tab = 0
+            }
+            create -> create = false
+            edit != null -> edit = null
+            delete != null -> delete = null
+        }
     }
     Scaffold(
         containerColor = canvas,
