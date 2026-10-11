@@ -69,6 +69,7 @@ private data class LabelBox(val type: LabelClass, val l: Float, val t: Float, va
 @Composable
 internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onMessage: (String) -> Unit, projectId: String = "default", projectName: String = "Dataset", classNames: List<String> = listOf("Object")) {
     val context = LocalContext.current
+    BackHandler(enabled = fullScreen) { fullScreen = false }
     val scope = rememberCoroutineScope()
     val configuredClassNames = classNames.map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { listOf("Object") }
     val classes = remember(configuredClassNames) {
@@ -554,8 +555,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                             IconButton(onClick = { fullScreen = false }, modifier = Modifier.size(34.dp)) { Icon(androidx.compose.material.icons.Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
                             Text(image?.name ?: "Image", color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                            IconButton(onClick = { fullScreen = false }, modifier = Modifier.size(32.dp)) { Icon(androidx.compose.material.icons.Icons.Default.Fullscreen, contentDescription = "Exit full screen", tint = Color.White) }
-                            IconButton(onClick = { fullScreen = false }, modifier = Modifier.size(34.dp)) { Icon(androidx.compose.material.icons.Icons.Default.Done, contentDescription = "Done", tint = Color(0xFF60A5FA)) }
+                            Button(onClick = { fullScreen = false }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp), shape = RoundedCornerShape(8.dp)) { Text("Done", style = MaterialTheme.typography.labelMedium) }
                         }
                     }
                     Surface(color = Color(0xCC101216), shape = RoundedCornerShape(12.dp)) {
@@ -590,12 +590,12 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         }
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
-                            IconButton(onClick = { zoomScale = (zoomScale - .25f).coerceAtLeast(1f) }, modifier = Modifier.size(32.dp)) { Icon(androidx.compose.material.icons.Icons.Default.ZoomOut, contentDescription = "Zoom out", tint = Color.White) }
+                            Text("−", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale - .25f).coerceAtLeast(1f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
                             Text("${(zoomScale * 100).toInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                            IconButton(onClick = { zoomScale = (zoomScale + .25f).coerceAtMost(4f) }, modifier = Modifier.size(32.dp)) { Icon(androidx.compose.material.icons.Icons.Default.ZoomIn, contentDescription = "Zoom in", tint = Color.White) }
-                            IconButton(onClick = { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }, modifier = Modifier.size(32.dp)) { Icon(androidx.compose.material.icons.Icons.Default.Undo, contentDescription = "Undo", tint = Color.White) }
-                            IconButton(onClick = { val next = redoBoxes.lastOrNull(); if (next != null) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to next); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; redoBoxes = redoBoxes.dropLast(1); activeBox = null } }, modifier = Modifier.size(32.dp)) { Icon(androidx.compose.material.icons.Icons.Default.Redo, contentDescription = "Redo", tint = Color.White) }
-                            IconButton(onClick = { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to emptyList()); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }, modifier = Modifier.size(32.dp)) { Icon(androidx.compose.material.icons.Icons.Default.DeleteSweep, contentDescription = "Clear annotations", tint = Color(0xFFFF9B9B)) }
+                            Text("+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(4f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("Undo", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 5.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+                            Text("Redo", color = Color.White, modifier = Modifier.clickable { val next = redoBoxes.lastOrNull(); if (next != null) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to next); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; redoBoxes = redoBoxes.dropLast(1); activeBox = null } }.padding(horizontal = 5.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+                            Text("Clear", color = Color(0xFFFF9B9B), modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to emptyList()); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 5.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
