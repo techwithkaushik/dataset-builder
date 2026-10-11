@@ -365,8 +365,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
                             val thumb = thumbState.value
                             DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
-                            Column(Modifier.width(68.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                Box(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
+                            Column(Modifier.width(58.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Box(Modifier.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                 }
@@ -534,18 +534,52 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 }
             }
             if (fullScreen) {
-                Surface(modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(10.dp), color = Color(0xEE101216), shape = RoundedCornerShape(14.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(image?.name ?: "Image", color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f))
-                            Text("${if (libraryImages.isEmpty()) 0 else index + 1}/${libraryImages.size}", color = Color.LightGray, style = MaterialTheme.typography.labelMedium)
-                            Button(onClick = { fullScreen = false }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp), shape = RoundedCornerShape(10.dp)) { Text("Done") }
+                Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = 6.dp, vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Surface(color = Color(0xEE101216), shape = RoundedCornerShape(12.dp)) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Box(Modifier.clickable { fullScreen = false }.padding(horizontal = 4.dp, vertical = 4.dp)) { Text("‹", color = Color.White, style = MaterialTheme.typography.headlineSmall) }
+                            Text(image?.name ?: "Image", color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                            Text("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 4.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("⌕", color = Color.White, modifier = Modifier.clickable { searchVisible = !searchVisible }.padding(horizontal = 4.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("⛶", color = Color.White, modifier = Modifier.clickable { fullScreen = false }.padding(horizontal = 4.dp), style = MaterialTheme.typography.titleMedium)
+                            Button(onClick = { fullScreen = false }, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp), shape = RoundedCornerShape(8.dp)) { Text("Done", style = MaterialTheme.typography.labelMedium) }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    }
+                    Surface(color = Color(0xCC101216), shape = RoundedCornerShape(12.dp)) {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 5.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                             classes.forEach { cls ->
                                 val count = boxes.count { it.type == cls }
-                                FilterChip(selected = selected == cls, onClick = { selected = cls }, label = { Text("${cls.title} (ID: ${cls.id}) · $count", maxLines = 1, softWrap = false) }, modifier = Modifier.weight(1f))
+                                Row(Modifier.widthIn(min = 92.dp).clip(RoundedCornerShape(10.dp)).background(cls.color.copy(alpha = .14f)).border(1.dp, cls.color.copy(alpha = .4f), RoundedCornerShape(10.dp)).clickable { selected = cls }.padding(horizontal = 7.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Box(Modifier.size(8.dp).background(cls.color, RoundedCornerShape(50)))
+                                    Column {
+                                        Text(cls.title, color = Color.White, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                        Text("ID: ${cls.id} · $count", color = Color.LightGray, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                    }
+                                }
                             }
+                            Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF252A32)).clickable { builderMenu = true }, contentAlignment = Alignment.Center) { Text("+", color = Color.White, style = MaterialTheme.typography.titleLarge) }
+                        }
+                    }
+                }
+                Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 6.dp, vertical = 5.dp), color = Color(0xDD101216), shape = RoundedCornerShape(12.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LazyRow(state = thumbnailListState, horizontalArrangement = Arrangement.spacedBy(5.dp), contentPadding = PaddingValues(horizontal = 2.dp)) {
+                            items(libraryImages, key = { it.absolutePath }) { item ->
+                                val itemIndex = libraryImages.indexOf(item)
+                                val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
+                                val thumb = thumbState.value
+                                DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
+                                Box(Modifier.width(66.dp).height(54.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF252A32)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF075BFA) else Color(0xFF525866), RoundedCornerShape(7.dp)).clickable(enabled = !busy) { index = itemIndex; activeBox = null }) {
+                                    if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(2.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
+                                    if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(16.dp).background(Color(0xFF075BFA), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall) }
+                                }
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                            Text("100%", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                            Text("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 8.dp), style = MaterialTheme.typography.titleLarge)
+                            Text("↻", color = Color.White, modifier = Modifier.clickable { index = index.coerceIn(0, libraryImages.lastIndex); activeBox = null }.padding(horizontal = 8.dp), style = MaterialTheme.typography.titleLarge)
                         }
                     }
                 }
