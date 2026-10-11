@@ -95,7 +95,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var formGroupId by remember(index, libraryImages, groupIds) {
         mutableStateOf(libraryImages.getOrNull(index)?.let { groupIds[it.nameWithoutExtension] ?: it.nameWithoutExtension }.orEmpty())
     }
-    var confirmRemove by remember { mutableStateOf(false) }
+    var imageToRemove by remember { mutableStateOf<File?>(null) }
     var savedPaths by remember(images) { mutableStateOf<Set<String>>(emptySet()) }
     var dirtyPaths by remember(images) { mutableStateOf<Set<String>>(emptySet()) }
     var status by remember { mutableStateOf("Select a class, then drag around each object to annotate it.") }
@@ -262,44 +262,49 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     }
 
 
-    if (confirmRemove) {
+    if (imageToRemove != null) {
         AlertDialog(
-            onDismissRequest = { confirmRemove = false },
-            title = { Text("Remove this image?") },
-            text = { Text("Image और उसकी saved annotations dataset से permanently हट जाएँगी। Original source file नहीं हटेगी।") },
+            onDismissRequest = { imageToRemove = null },
+            title = { Text("Delete this image?") },
+            text = { Text("यह image और इसकी saved annotations dataset से permanently हट जाएँगी। Original source file प्रभावित नहीं होगी।") },
             confirmButton = {
                 TextButton(onClick = {
-                    val target = image
-                    confirmRemove = false
+                    val target = imageToRemove
+                    imageToRemove = null
                     if (target != null) scope.launch {
                         busy = true
                         try {
+                            val removedIndex = libraryImages.indexOfFirst { it.absolutePath == target.absolutePath }
                             withContext(Dispatchers.IO) {
-                                target.delete()
+                                if (!target.delete()) throw IllegalStateException("Image file could not be deleted")
                                 File(context.filesDir, "dataset-projects/$projectId/train/labels/${target.nameWithoutExtension}.txt").delete()
                                 val groupsFile = File(context.filesDir, "dataset-projects/$projectId/train/groups.txt")
-                                if (groupsFile.isFile) groupsFile.writeText(groupsFile.readLines().filterNot { it.substringBefore("\t") == target.nameWithoutExtension }.joinToString("\n", postfix = "\n"))
+                                if (groupsFile.isFile) groupsFile.writeText(groupsFile.readLines().filterNot { it.substringBefore("\\t") == target.nameWithoutExtension }.joinToString("\\n", postfix = "\\n"))
                             }
                             annotationsByImage = annotationsByImage - target.absolutePath
                             savedPaths = savedPaths - target.absolutePath
                             groupIds = groupIds - target.nameWithoutExtension
                             dirtyPaths = dirtyPaths - target.absolutePath
                             libraryImages = libraryImages.filterNot { it.absolutePath == target.absolutePath }
-                            index = index.coerceIn(0, (libraryImages.size - 1).coerceAtLeast(0))
+                            index = when {
+                                libraryImages.isEmpty() -> 0
+                                removedIndex in 0..index -> (index - 1).coerceAtLeast(0).coerceAtMost(libraryImages.lastIndex)
+                                else -> index.coerceAtMost(libraryImages.lastIndex)
+                            }
                             activeBox = null
-                            status = "Image और उसकी annotations हटाई गईं"
-                        } catch (e: Exception) { status = "Remove failed: " + (e.message ?: "unknown error") }
+                            status = "Image deleted from dataset"
+                        } catch (e: Exception) { status = "Delete failed: " + (e.message ?: "unknown error") }
                         finally { busy = false }
                     }
-                }) { Text("Remove") }
+                }) { Text("Delete") }
             },
-            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { imageToRemove = null }) { Text("Cancel") } },
         )
     }
 
-    BackHandler(enabled = fullScreen || confirmRemove) {
+    BackHandler(enabled = fullScreen || imageToRemove != null) {
         when {
-            confirmRemove -> confirmRemove = false
+            imageToRemove != null -> imageToRemove = null
             fullScreen -> fullScreen = false
         }
     }
@@ -398,6 +403,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             Column(Modifier.width(58.dp).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                 Box(Modifier.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
+                                    Box(Modifier.align(Alignment.TopStart).padding(2.dp).size(19.dp).background(Color(0xFFDC2626), RoundedCornerShape(50)).clickable(enabled = !busy) { imageToRemove = item }, contentAlignment = Alignment.Center) { Text("×", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                                     if (item.absolutePath in savedPaths) Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size(17.dp).background(Color(0xFF16A34A), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                 }
@@ -694,6 +700,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
                                 Box(Modifier.width(66.dp).height(54.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF252A32)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF075BFA) else Color(0xFF525866), RoundedCornerShape(7.dp)).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(2.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
+                                    Box(Modifier.align(Alignment.TopStart).padding(2.dp).size(18.dp).background(Color(0xFFDC2626), RoundedCornerShape(50)).clickable(enabled = !busy) { imageToRemove = item }, contentAlignment = Alignment.Center) { Text("×", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                     if (item.absolutePath in savedPaths) Box(Modifier.align(Alignment.TopEnd).padding(2.dp).size(16.dp).background(Color(0xFF16A34A), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Saved", tint = Color.White, modifier = Modifier.size(11.dp)) }
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(16.dp).background(Color(0xFF075BFA), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Selected", tint = Color.White, modifier = Modifier.size(12.dp)) }
                                 }
