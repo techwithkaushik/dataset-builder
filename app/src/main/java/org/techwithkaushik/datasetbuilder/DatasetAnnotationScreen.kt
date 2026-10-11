@@ -265,8 +265,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     if (imageToRemove != null) {
         AlertDialog(
             onDismissRequest = { imageToRemove = null },
-            title = { Text("Delete this image?") },
-            text = { Text("This image and its saved annotations will be permanently removed from the dataset. The original source file will remain untouched.") },
+            title = { LText("Delete this image?") },
+            text = { LText("This image and its saved annotations will be permanently removed from the dataset. The original source file will remain untouched.") },
             confirmButton = {
                 TextButton(onClick = {
                     val target = imageToRemove
@@ -296,9 +296,9 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         } catch (e: Exception) { status = "Delete failed: " + (e.message ?: "unknown error") }
                         finally { busy = false }
                     }
-                }) { Text("Delete") }
+                }) { LText("Delete") }
             },
-            dismissButton = { TextButton(onClick = { imageToRemove = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { imageToRemove = null }) { LText("Cancel") } },
         )
     }
 
@@ -315,8 +315,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
                     title = {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(projectName, fontWeight = FontWeight.ExtraBold, maxLines = 1, style = MaterialTheme.typography.titleMedium, color = Color(0xFF17243A))
-                            Text("${libraryImages.size} images  ·  ${savedPaths.size} saved", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B), maxLines = 1)
+                            LText(projectName, fontWeight = FontWeight.ExtraBold, maxLines = 1, style = MaterialTheme.typography.titleMedium, color = Color(0xFF17243A))
+                            LText("${libraryImages.size} images  ·  ${savedPaths.size} saved", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B), maxLines = 1)
                         }
                     },
                     navigationIcon = { androidx.compose.material3.IconButton(onClick = onExit) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.ArrowBack, contentDescription = "Back to datasets") } },
@@ -324,8 +324,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         androidx.compose.material3.IconButton(onClick = { addImagesLauncher.launch(arrayOf("image/*")) }, enabled = !busy) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.AddPhotoAlternate, contentDescription = "Add images") }
                         androidx.compose.material3.IconButton(onClick = { builderMenu = true }) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = "Project actions") }
                         DropdownMenu(expanded = builderMenu, onDismissRequest = { builderMenu = false }) {
-                            DropdownMenuItem(text = { Text("Export dataset ZIP") }, leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.Archive, null) }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, onClick = { builderMenu = false; zipLauncher.launch("${projectName.trim().ifBlank { "Dataset" }.replace(Regex("[/\\\\:*?\"<>|]"), "_")}-dataset.zip") })
-                            DropdownMenuItem(text = { Text("Finish and return") }, leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.CheckCircle, null) }, enabled = !busy, onClick = { builderMenu = false; onExit() })
+                            DropdownMenuItem(text = { LText("Export dataset ZIP") }, leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.Archive, null) }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, onClick = { builderMenu = false; zipLauncher.launch("${projectName.trim().ifBlank { "Dataset" }.replace(Regex("[/\\\\:*?\"<>|]"), "_")}-dataset.zip") })
+                            DropdownMenuItem(text = { LText("Finish and return") }, leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.CheckCircle, null) }, enabled = !busy, onClick = { builderMenu = false; onExit() })
                         }
                     }
                 )
@@ -334,7 +334,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         FilterChip(
                             selected = builderTab == tab,
                             onClick = { builderTab = tab },
-                            label = { Text(tab, maxLines = 1, fontWeight = if (builderTab == tab) FontWeight.Bold else FontWeight.Medium) },
+                            label = { LText(tab, maxLines = 1, fontWeight = if (builderTab == tab) FontWeight.Bold else FontWeight.Medium) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
                             colors = FilterChipDefaults.filterChipColors(
@@ -358,33 +358,33 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             if (!fullScreen && builderTab == "Annotate") Surface(color = Color.White, shadowElevation = 8.dp) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 1.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
                     Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Annotations (${boxes.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
-                        Box(Modifier.clickable { builderMenu = true }.padding(horizontal = 8.dp, vertical = 3.dp)) { Text("Manage", color = Color(0xFF145DDE), style = MaterialTheme.typography.labelLarge) }
+                        LText("Annotations (${boxes.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
+                        Box(Modifier.clickable { builderMenu = true }.padding(horizontal = 8.dp, vertical = 3.dp)) { LText("Manage", color = Color(0xFF145DDE), style = MaterialTheme.typography.labelLarge) }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         classes.forEach { cls ->
                             val count = boxes.count { it.type == cls }
                             Row(Modifier.weight(1f).heightIn(min = 29.dp).clip(RoundedCornerShape(10.dp)).background(cls.color.copy(alpha = .09f)).border(1.dp, cls.color.copy(alpha = .16f), RoundedCornerShape(10.dp)).clickable { selected = cls }.padding(horizontal = 5.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Box(Modifier.size(8.dp).background(cls.color, RoundedCornerShape(50)))
-                                Text(cls.title, modifier = Modifier.weight(1f), maxLines = 1, style = MaterialTheme.typography.labelSmall, color = Color(0xFF27364A))
-                                Text("$count", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = cls.color)
+                                LText(cls.title, modifier = Modifier.weight(1f), maxLines = 1, style = MaterialTheme.typography.labelSmall, color = Color(0xFF27364A))
+                                LText("$count", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = cls.color)
                             }
                         }
                     }
                     Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Images (${libraryImages.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
+                        LText("Images (${libraryImages.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
                         Box {
-                            Box(Modifier.clickable { sortMenu = true }.padding(horizontal = 5.dp, vertical = 3.dp)) { Text("Sort: $imageSort ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
+                            Box(Modifier.clickable { sortMenu = true }.padding(horizontal = 5.dp, vertical = 3.dp)) { LText("Sort: $imageSort ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
                             DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
                                 listOf("Name", "Newest", "Oldest").forEach { option ->
-                                    DropdownMenuItem(text = { Text(option) }, onClick = { imageSort = option; sortMenu = false })
+                                    DropdownMenuItem(text = { LText(option) }, onClick = { imageSort = option; sortMenu = false })
                                 }
                             }
                         }
-                        Box(Modifier.size(28.dp).clickable { searchVisible = !searchVisible; if (!searchVisible) imageSearch = "" }, contentAlignment = Alignment.Center) { Text(if (searchVisible) "×" else "⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
+                        Box(Modifier.size(28.dp).clickable { searchVisible = !searchVisible; if (!searchVisible) imageSearch = "" }, contentAlignment = Alignment.Center) { LText(if (searchVisible) "×" else "⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
                     }
                     if (searchVisible) {
-                        OutlinedTextField(value = imageSearch, onValueChange = { imageSearch = it }, singleLine = true, placeholder = { Text("Search images…") }, modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp), shape = RoundedCornerShape(10.dp), textStyle = MaterialTheme.typography.bodySmall)
+                        OutlinedTextField(value = imageSearch, onValueChange = { imageSearch = it }, singleLine = true, placeholder = { LText("Search images…") }, modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp), shape = RoundedCornerShape(10.dp), textStyle = MaterialTheme.typography.bodySmall)
                     }
                     val visibleImages = remember(libraryImages, imageSearch, imageSort) {
                         val filtered = libraryImages.filter { it.name.contains(imageSearch.trim(), ignoreCase = true) }
@@ -403,24 +403,24 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             Column(Modifier.width(58.dp).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                 Box(Modifier.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
-                                    Box(Modifier.align(Alignment.TopStart).padding(2.dp).size(19.dp).background(Color(0xFFDC2626), RoundedCornerShape(50)).clickable(enabled = !busy) { imageToRemove = item }, contentAlignment = Alignment.Center) { Text("×", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                                    if (item.absolutePath in savedPaths) Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size(17.dp).background(Color(0xFF16A34A), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                                    if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                                    Box(Modifier.align(Alignment.TopStart).padding(2.dp).size(19.dp).background(Color(0xFFDC2626), RoundedCornerShape(50)).clickable(enabled = !busy) { imageToRemove = item }, contentAlignment = Alignment.Center) { LText("×", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                                    if (item.absolutePath in savedPaths) Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size(17.dp).background(Color(0xFF16A34A), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { LText("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                                    if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { LText("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                 }
-                                Text(item.name, maxLines = 1, style = MaterialTheme.typography.labelSmall, color = Color(0xFF182230))
+                                LText(item.name, maxLines = 1, style = MaterialTheme.typography.labelSmall, color = Color(0xFF182230))
                             }
                         }
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(onClick = { if (index > 0) saveCurrent { index--; activeBox = null; status = "Previous image" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f).height(40.dp), shape = RoundedCornerShape(11.dp), contentPadding = PaddingValues(vertical = 2.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F4FA), contentColor = Color(0xFF17243A)), border = null) { Text("←  Previous", fontWeight = FontWeight.SemiBold) }
-                        Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", modifier = Modifier.widthIn(min = 54.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = Color(0xFF26364C))
-                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy, modifier = Modifier.weight(1f).height(40.dp), shape = RoundedCornerShape(11.dp), contentPadding = PaddingValues(vertical = 2.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { Text(if (index < libraryImages.lastIndex) "Save & Next  →" else "Save ✓", fontWeight = FontWeight.SemiBold) }
+                        OutlinedButton(onClick = { if (index > 0) saveCurrent { index--; activeBox = null; status = "Previous image" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f).height(40.dp), shape = RoundedCornerShape(11.dp), contentPadding = PaddingValues(vertical = 2.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F4FA), contentColor = Color(0xFF17243A)), border = null) { LText("←  Previous", fontWeight = FontWeight.SemiBold) }
+                        LText("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", modifier = Modifier.widthIn(min = 54.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = Color(0xFF26364C))
+                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy, modifier = Modifier.weight(1f).height(40.dp), shape = RoundedCornerShape(11.dp), contentPadding = PaddingValues(vertical = 2.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { LText(if (index < libraryImages.lastIndex) "Save & Next  →" else "Save ✓", fontWeight = FontWeight.SemiBold) }
                     }
                 }
             } else if (!fullScreen) Surface(color = Color.White, shadowElevation = 4.dp) {
                 Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { builderTab = "Annotate" }, modifier = Modifier.weight(1f)) { Text("Back to annotation") }
-                    Button(onClick = { zipLauncher.launch("${projectName.trim().ifBlank { "Dataset" }.replace(Regex("[/\\\\:*?\"<>|]"), "_")}-dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f)) { Text("Export ZIP") }
+                    OutlinedButton(onClick = { builderTab = "Annotate" }, modifier = Modifier.weight(1f)) { LText("Back to annotation") }
+                    Button(onClick = { zipLauncher.launch("${projectName.trim().ifBlank { "Dataset" }.replace(Regex("[/\\\\:*?\"<>|]"), "_")}-dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f)) { LText("Export ZIP") }
                 }
             }
         }
@@ -429,7 +429,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             when (builderTab) {
                 "Images" -> {
                     Column(Modifier.fillMaxSize().padding(padding).padding(12.dp)) {
-                        Text("Images · ${libraryImages.size}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        LText("Images · ${libraryImages.size}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(8.dp))
                         androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
                             columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(3),
@@ -447,9 +447,9 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 ElevatedCard(onClick = { index = i; builderTab = "Annotate" }, shape = RoundedCornerShape(10.dp)) {
                                     Column(Modifier.padding(5.dp)) {
                                         if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(7.dp)), contentScale = ContentScale.Crop)
-                                        else Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) { Text("Loading…") }
-                                        Text(item.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                                        Text(if (item.absolutePath in savedPaths) "Saved" else "Pending", style = MaterialTheme.typography.labelSmall, color = if (item.absolutePath in savedPaths) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                        else Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) { LText("Loading…") }
+                                        LText(item.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                        LText(if (item.absolutePath in savedPaths) "Saved" else "Pending", style = MaterialTheme.typography.labelSmall, color = if (item.absolutePath in savedPaths) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }
@@ -457,32 +457,32 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     }
                 }
                 "Classes" -> Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Annotation classes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    LText("Annotation classes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     classes.forEach { cls ->
                         val count = libraryImages.sumOf { file -> annotationsByImage[file.absolutePath].orEmpty().count { it.type == cls } }
                         ElevatedCard(shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(Modifier.size(12.dp).background(cls.color, RoundedCornerShape(50)))
                                 Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                    Text(cls.title, fontWeight = FontWeight.SemiBold)
-                                    Text("Class ID: ${cls.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    LText(cls.title, fontWeight = FontWeight.SemiBold)
+                                    LText("Class ID: ${cls.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Text(count.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                LText(count.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
-                    Text("Class IDs follow the configured class order and are included in data.yaml.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    LText("Class IDs follow the configured class order and are included in data.yaml.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 else -> Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Dataset info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(projectName, style = MaterialTheme.typography.titleMedium)
-                    Text("Images: ${libraryImages.size}")
-                    Text("Saved labels: ${savedPaths.size}")
-                    Text("Pending images: ${(libraryImages.size - savedPaths.size).coerceAtLeast(0)}")
-                    Text("Unsaved edits: ${dirtyPaths.size}")
-                    Text("Workspace: app-private storage, isolated by project.")
-                    Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = { builderTab = "Annotate" }) { Text("Return to annotation") }
+                    LText("Dataset info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    LText(projectName, style = MaterialTheme.typography.titleMedium)
+                    LText("Images: ${libraryImages.size}")
+                    LText("Saved labels: ${savedPaths.size}")
+                    LText("Pending images: ${(libraryImages.size - savedPaths.size).coerceAtLeast(0)}")
+                    LText("Unsaved edits: ${dirtyPaths.size}")
+                    LText("Workspace: app-private storage, isolated by project.")
+                    LText(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Button(onClick = { builderTab = "Annotate" }) { LText("Return to annotation") }
                 }
             }
         } else Box(
@@ -494,10 +494,10 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         ) {
             if (libraryImages.isEmpty()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("No dataset images yet", color = Color.White)
-                    Button(onClick = { addImagesLauncher.launch(arrayOf("image/*")) }, enabled = !busy, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text("Add images") }
+                    LText("No dataset images yet", color = Color.White)
+                    Button(onClick = { addImagesLauncher.launch(arrayOf("image/*")) }, enabled = !busy, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { LText("Add images") }
                 }
-            } else if (bitmap == null) Text("Image could not be opened", color = Color.White)
+            } else if (bitmap == null) LText("Image could not be opened", color = Color.White)
             else BoxWithConstraints(
                 Modifier.fillMaxSize()
                     .clip(RoundedCornerShape(if (fullScreen) 0.dp else 16.dp))
@@ -631,23 +631,23 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             if (!fullScreen && builderTab == "Annotate" && libraryImages.isNotEmpty()) {
                 Row(Modifier.align(Alignment.TopStart).padding(6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Surface(color = Color(0xCC20252D), shape = RoundedCornerShape(10.dp)) {
-                        Text("${index + 1} / ${libraryImages.size}", modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        LText("${index + 1} / ${libraryImages.size}", modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 Row(Modifier.align(Alignment.TopEnd).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Surface(color = Color(0xCC20252D), shape = RoundedCornerShape(10.dp)) {
-                        Text("⌕", modifier = Modifier.clickable { fullScreen = true }.padding(horizontal = 8.dp, vertical = 2.dp), color = Color.White, style = MaterialTheme.typography.titleLarge)
+                        LText("⌕", modifier = Modifier.clickable { fullScreen = true }.padding(horizontal = 8.dp, vertical = 2.dp), color = Color.White, style = MaterialTheme.typography.titleLarge)
                     }
                     Surface(color = Color(0xCC20252D), shape = RoundedCornerShape(10.dp)) {
-                        Text("⛶", modifier = Modifier.clickable { fullScreen = true }.padding(horizontal = 8.dp, vertical = 5.dp), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                        LText("⛶", modifier = Modifier.clickable { fullScreen = true }.padding(horizontal = 8.dp, vertical = 5.dp), color = Color.White, style = MaterialTheme.typography.titleMedium)
                     }
                 }
                 Row(Modifier.align(Alignment.CenterStart).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = Color(0xB820252D), shape = RoundedCornerShape(50.dp), modifier = Modifier.padding(start = 2.dp).clickable(enabled = index > 0 && !busy) { index--; activeBox = null }) {
-                        Text("‹", modifier = Modifier.padding(horizontal = 8.dp, vertical = 1.dp), color = Color.White, style = MaterialTheme.typography.headlineMedium)
+                        LText("‹", modifier = Modifier.padding(horizontal = 8.dp, vertical = 1.dp), color = Color.White, style = MaterialTheme.typography.headlineMedium)
                     }
                     Surface(color = Color(0xB820252D), shape = RoundedCornerShape(50.dp), modifier = Modifier.padding(end = 2.dp).clickable(enabled = index < libraryImages.lastIndex && !busy) { index++; activeBox = null }) {
-                        Text("›", modifier = Modifier.padding(horizontal = 11.dp, vertical = 3.dp), color = Color.White, style = MaterialTheme.typography.headlineMedium)
+                        LText("›", modifier = Modifier.padding(horizontal = 11.dp, vertical = 3.dp), color = Color.White, style = MaterialTheme.typography.headlineMedium)
                     }
                 }
             }
@@ -656,8 +656,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     Surface(color = Color(0xEE101216), shape = RoundedCornerShape(12.dp)) {
                         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                             IconButton(onClick = { fullScreen = false }, modifier = Modifier.size(34.dp)) { Icon(androidx.compose.material.icons.Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White) }
-                            Text(image?.name ?: "Image", color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                            Button(onClick = { fullScreen = false }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp), shape = RoundedCornerShape(8.dp)) { Text("Done", style = MaterialTheme.typography.labelMedium) }
+                            LText(image?.name ?: "Image", color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                            Button(onClick = { fullScreen = false }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp), shape = RoundedCornerShape(8.dp)) { LText("Done", style = MaterialTheme.typography.labelMedium) }
                         }
                     }
                     Surface(color = Color(0xCC101216), shape = RoundedCornerShape(12.dp)) {
@@ -667,8 +667,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 Row(Modifier.widthIn(min = 92.dp).clip(RoundedCornerShape(10.dp)).background(cls.color.copy(alpha = .14f)).border(1.dp, cls.color.copy(alpha = .4f), RoundedCornerShape(10.dp)).clickable { selected = cls }.padding(horizontal = 7.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Box(Modifier.size(8.dp).background(cls.color, RoundedCornerShape(50)))
                                     Column {
-                                        Text(cls.title, color = Color.White, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                                        Text("ID: ${cls.id} · $count", color = Color.LightGray, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                        LText(cls.title, color = Color.White, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                        LText("ID: ${cls.id} · $count", color = Color.LightGray, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                     }
                                 }
                             }
@@ -680,7 +680,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     Column(Modifier.fillMaxWidth().padding(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (fullScreen) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                Text(
+                                LText(
                                     if (panMode) "↔ Move image" else "▱ Draw boxes",
                                     color = Color.White,
                                     modifier = Modifier
@@ -700,20 +700,20 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
                                 Box(Modifier.width(66.dp).height(54.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF252A32)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF075BFA) else Color(0xFF525866), RoundedCornerShape(7.dp)).clickable(enabled = !busy) { if (itemIndex != index) saveCurrent { index = itemIndex; activeBox = null; status = item.name } }) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(2.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
-                                    Box(Modifier.align(Alignment.TopStart).padding(2.dp).size(18.dp).background(Color(0xFFDC2626), RoundedCornerShape(50)).clickable(enabled = !busy) { imageToRemove = item }, contentAlignment = Alignment.Center) { Text("×", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                                    Box(Modifier.align(Alignment.TopStart).padding(2.dp).size(18.dp).background(Color(0xFFDC2626), RoundedCornerShape(50)).clickable(enabled = !busy) { imageToRemove = item }, contentAlignment = Alignment.Center) { LText("×", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                     if (item.absolutePath in savedPaths) Box(Modifier.align(Alignment.TopEnd).padding(2.dp).size(16.dp).background(Color(0xFF16A34A), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Saved", tint = Color.White, modifier = Modifier.size(11.dp)) }
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(16.dp).background(Color(0xFF075BFA), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Selected", tint = Color.White, modifier = Modifier.size(12.dp)) }
                                 }
                             }
                         }
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
-                            Text("−", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale - .25f).coerceAtLeast(1f); if (zoomScale <= 1f) zoomOffset = Offset.Zero }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
-                            Text("${(zoomScale * 100).toInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                            Text("+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(10f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
-                            Text("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
-                            Text("↷", color = Color.White, modifier = Modifier.clickable { val next = redoBoxes.lastOrNull(); if (next != null) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to next); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; redoBoxes = redoBoxes.dropLast(1); activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
-                            Text("⌫", color = Color(0xFFFF9B9B), modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to emptyList()); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            LText("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
+                            LText("−", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale - .25f).coerceAtLeast(1f); if (zoomScale <= 1f) zoomOffset = Offset.Zero }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
+                            LText("${(zoomScale * 100).toInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            LText("+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(10f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
+                            LText("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            LText("↷", color = Color.White, modifier = Modifier.clickable { val next = redoBoxes.lastOrNull(); if (next != null) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to next); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; redoBoxes = redoBoxes.dropLast(1); activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            LText("⌫", color = Color(0xFFFF9B9B), modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to emptyList()); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
                         }
                     }
                 }
