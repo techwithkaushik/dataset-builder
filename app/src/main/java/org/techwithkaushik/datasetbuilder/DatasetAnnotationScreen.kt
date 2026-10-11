@@ -90,6 +90,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var zoomScale by remember(index) { mutableFloatStateOf(1f) }
     var zoomOffset by remember(index) { mutableStateOf(Offset.Zero) }
     var panMode by remember(index) { mutableStateOf(false) }
+    var overlayVisible by remember(index) { mutableStateOf(true) }
     var redoBoxes by remember(index) { mutableStateOf<List<List<LabelBox>>>(emptyList()) }
     var formGroupId by remember(index, libraryImages, groupIds) {
         mutableStateOf(libraryImages.getOrNull(index)?.let { groupIds[it.nameWithoutExtension] ?: it.nameWithoutExtension }.orEmpty())
@@ -573,6 +574,10 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                 activeBox = null
                             } else if (!fullScreen) {
                                 fullScreen = true
+                                overlayVisible = true
+                            } else {
+                                // A tap anywhere on the canvas toggles the controls overlay.
+                                overlayVisible = !overlayVisible
                             }
                         }
                     },
@@ -649,7 +654,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         }
                     }
                 }
-                Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 6.dp, vertical = 5.dp), color = Color(0xDD101216), shape = RoundedCornerShape(12.dp)) {
+                if (overlayVisible) Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 6.dp, vertical = 5.dp), color = Color(0xDD101216), shape = RoundedCornerShape(12.dp)) {
                     Column(Modifier.fillMaxWidth().padding(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (fullScreen) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
