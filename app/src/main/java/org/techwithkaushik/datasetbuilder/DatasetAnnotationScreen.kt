@@ -577,7 +577,6 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     with(androidx.compose.ui.platform.LocalDensity.current) { dw.toDp() },
                     with(androidx.compose.ui.platform.LocalDensity.current) { dh.toDp() }), contentScale = ContentScale.FillBounds)
                 Canvas(Modifier.fillMaxSize()) {
-{
                     (boxes + listOfNotNull(activeBox)).forEach { b ->
                         drawRect(b.type.color, Offset(ox + b.l * dw, oy + b.t * dh),
                             Size((b.r - b.l) * dw, (b.b - b.t) * dh),
