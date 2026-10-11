@@ -177,7 +177,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         if (uri != null) scope.launch {
             busy = true
             try {
-                withContext(Dispatchers.IO) { writeDatasetZip(context, uri, projectId) }
+                withContext(Dispatchers.IO) { writeDatasetZip(context, uri, projectId, classNames) }
                 onMessage("dataset.zip export हो गया")
             } catch (e: Exception) { onMessage("Export failed: " + (e.message ?: "unknown error")) }
             finally { busy = false }
@@ -188,10 +188,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         val current = image ?: return
         val currentBoxes = boxes
         val normalizedGroup = formGroupId.trim().replace("\\t", " ").replace("\\n", " ").replace("\\r", " ")
-        if (normalizedGroup.isBlank()) { status = "एक Form Group ID दें। एक ही form की सभी photos में यही ID रखें।"; return }
-        // PHOTO and SIGNATURE are independent classes. Save images containing either class,
-        // both classes, and true negative images with no target at all; empty YOLO label
-        // files represent negative samples.
+        if (normalizedGroup.isBlank()) { status = "Enter a Group ID. Use the same ID for related images that must stay in one split."; return }
+        // Any configured class can be annotated. Empty YOLO label files represent negative samples.
         scope.launch {
             busy = true
             try {
@@ -216,8 +214,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 if (index < libraryImages.lastIndex) {
                     index++
                     activeBox = null
-                    status = "अगला image: sirf jo objects dikh rahe hain unhe label karein; missing class force na karein"
-                } else status = "सभी forms annotate हो गए। ZIP export करें।"
+                    status = "Next image: annotate only the objects that are present."
+                } else status = "All images reviewed. Export the dataset when ready."
             } catch (e: Exception) { status = "Save failed: " + (e.message ?: "unknown error") }
             finally { busy = false }
         }
@@ -279,7 +277,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         androidx.compose.material3.IconButton(onClick = { addImagesLauncher.launch(arrayOf("image/*")) }, enabled = !busy) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.AddPhotoAlternate, contentDescription = "Add images") }
                         androidx.compose.material3.IconButton(onClick = { builderMenu = true }) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.MoreVert, contentDescription = "Project actions") }
                         DropdownMenu(expanded = builderMenu, onDismissRequest = { builderMenu = false }) {
-                            DropdownMenuItem(text = { Text("Export dataset ZIP") }, leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.Archive, null) }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, onClick = { builderMenu = false; zipLauncher.launch("formsnap-dataset.zip") })
+                            DropdownMenuItem(text = { Text("Export dataset ZIP") }, leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.Archive, null) }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, onClick = { builderMenu = false; zipLauncher.launch("dataset.zip") })
                             DropdownMenuItem(text = { Text("Finish and return") }, leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.CheckCircle, null) }, enabled = !busy, onClick = { builderMenu = false; onExit() })
                         }
                     }
@@ -340,7 +338,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             shape = RoundedCornerShape(8.dp),
                         ) { Text("Clear") }
                     }
-                    OutlinedTextField(value = formGroupId, onValueChange = { formGroupId = it }, label = { Text("Form Group ID") }, supportingText = { Text("एक original form की सभी photos में same ID रखें।") }, singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), enabled = !busy)
+                    OutlinedTextField(value = formGroupId, onValueChange = { formGroupId = it }, label = { Text("Group ID") }, supportingText = { Text("Use the same ID for related images that should stay in the same split.") }, singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), enabled = !busy)
                     val photoBoxes = boxes.filter { it.type == LabelClass.PHOTO }
                     val signBoxes = boxes.filter { it.type == LabelClass.SIGNATURE }
                     val oversized = boxes.filter { b -> (b.r - b.l) * (b.b - b.t) > if (b.type == LabelClass.PHOTO) 0.45f else 0.20f }
@@ -384,7 +382,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         OutlinedButton(onClick = { confirmRemove = true }, enabled = image != null && !busy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text("Remove image") }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { zipLauncher.launch("formsnap-dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text(if (dirtyPaths.isNotEmpty()) "Save edits first" else if (saved != libraryImages.size) "Save all images first" else "Export dataset.zip") }
+                        OutlinedButton(onClick = { zipLauncher.launch("dataset.zip") }, enabled = saved == libraryImages.size && libraryImages.isNotEmpty() && dirtyPaths.isEmpty() && !busy, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text(if (dirtyPaths.isNotEmpty()) "Save edits first" else if (saved != libraryImages.size) "Save all images first" else "Export dataset.zip") }
                         OutlinedButton(onClick = onExit, enabled = !busy, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text("Finish") }
                     }
                 }
@@ -437,7 +435,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             }
                         }
                     }
-                    Text("Class IDs are fixed for YOLO compatibility: Photo = 0, Signature = 1.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Class IDs follow the configured class order and are included in data.yaml.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 else -> Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Dataset info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -544,16 +542,14 @@ private fun decodeSampledBitmap(file: File, maxDimension: Int): Bitmap? {
     return BitmapFactory.decodeFile(file.absolutePath, options)
 }
 
-private fun writeDatasetZip(context: Context, uri: Uri, projectId: String) {
+private fun writeDatasetZip(context: Context, uri: Uri, projectId: String, classNames: List<String>) {
     val root = File(context.filesDir, "dataset-projects/$projectId")
     val images = File(root, "train/images").listFiles()?.filter { it.isFile }?.sortedBy { it.name }.orEmpty()
-    require(images.size >= 10) {
-        "At least 10 annotated forms are required for train/validation/test export; current count: ${images.size}"
-    }
+    require(classNames.isNotEmpty()) { "Add at least one annotation class before exporting." }
+    require(images.isNotEmpty()) { "Add at least one image before exporting." }
     val labelsByImage = images.associateWith { image ->
         File(root, "train/labels/" + image.name.substringBeforeLast('.') + ".txt")
     }
-    val classCounts = intArrayOf(0, 0)
     labelsByImage.forEach { (image, label) ->
         require(label.isFile) { "Missing label for ${image.name}" }
         val lines = label.readLines().filter { it.isNotBlank() }
@@ -565,7 +561,7 @@ private fun writeDatasetZip(context: Context, uri: Uri, projectId: String) {
             }
             val classId = values[0].toIntOrNull()
                 ?: error("Invalid class ID at ${label.name}:${lineIndex + 1}")
-            require(classId in 0..1) { "Unknown class ID $classId in ${label.name}" }
+            require(classId in classNames.indices) { "Unknown class ID $classId in ${label.name}; configured classes: ${classNames.size}" }
             val box = values.drop(1).mapNotNull { it.toFloatOrNull() }
             require(box.size == 4 && box.all { it.isFinite() }) {
                 "Invalid numeric coordinates at ${label.name}:${lineIndex + 1}"
@@ -578,10 +574,8 @@ private fun writeDatasetZip(context: Context, uri: Uri, projectId: String) {
                 cx + width / 2f <= 1.0001f && cy + height / 2f <= 1.0001f) {
                 "Box extends outside image at ${label.name}:${lineIndex + 1}"
             }
-            classCounts[classId]++
         }
     }
-    require(classCounts.all { it > 0 }) { "Both Photo and Signature labels must exist before export" }
     val groupFile = File(root, "train/groups.txt")
     val groupByBase = groupFile.takeIf { it.isFile }?.readLines().orEmpty()
         .mapNotNull { line ->
@@ -605,25 +599,6 @@ private fun writeDatasetZip(context: Context, uri: Uri, projectId: String) {
             else -> "train"
         }
     }.toMap()
-    val splitClassCounts = mutableMapOf(
-        "train" to intArrayOf(0, 0),
-        "valid" to intArrayOf(0, 0),
-        "test" to intArrayOf(0, 0),
-    )
-    images.forEach { image ->
-        val split = splitByGroup.getValue(groupByImage.getValue(image))
-        val label = labelsByImage.getValue(image)
-        label.readLines().filter { it.isNotBlank() }.forEach { line ->
-            val classId = line.trim().split(Regex("\\s+"))[0].toInt()
-            splitClassCounts.getValue(split)[classId]++
-        }
-    }
-    splitClassCounts.forEach { (split, counts) ->
-        require(counts.all { it > 0 }) {
-            "The $split split must contain at least one Photo and one Signature label overall. " +
-                "Individual images may contain either class, both classes, or neither."
-        }
-    }
     context.contentResolver.openOutputStream(uri)?.use { stream ->
         ZipOutputStream(stream).use { zip ->
             images.forEach { image ->
@@ -663,24 +638,24 @@ private fun writeDatasetZip(context: Context, uri: Uri, projectId: String) {
                 label.inputStream().use { it.copyTo(zip) }
                 zip.closeEntry()
             }
+            val yamlNames = classNames.mapIndexed { index, name -> "  $index: '${name.replace("'", "''")}'" }.joinToString("\n")
             val yaml = """path: .
 train: train/images
 val: valid/images
 test: test/images
 names:
-  0: Photo
-  1: Signature
+$yamlNames
 """
             zip.putNextEntry(ZipEntry("data.yaml")); zip.write(yaml.toByteArray()); zip.closeEntry()
-            val note = """Classes: 0=Photo, 1=Signature.
-Dataset preflight: export requires at least 10 images and checks every YOLO label for valid class IDs, finite normalized coordinates, positive box size, and image-boundary containment. Empty label files are valid negative samples; the export is blocked if any non-empty label is invalid.
+            val note = """Annotation classes:
+${classNames.mapIndexed { index, name -> "$index = $name" }.joinToString("\n")}
+Dataset preflight: every YOLO label is checked for a valid configured class ID, finite normalized coordinates, positive box size, and image-boundary containment. Empty label files are valid negative samples.
 Annotation quality checklist:
-- Draw a tight box around the actual photo or signature, not its printed caption or surrounding form border.
-- Label every distinct signature separately; multiple boxes of either class are supported.
-- Classes are independent: include PHOTO-only, SIGNATURE-only, both-class images, and negative images with neither object. Never draw a fake box for a missing class.
-- Include varied form layouts, lighting, blur, rotation, scale, and background conditions.
+- Draw a tight box around each object that belongs to a configured class.
+- Annotate every visible instance consistently. Do not draw boxes for absent objects.
+- Include varied scenes, lighting, blur, rotation, scale, and background conditions when relevant to your task.
 - Review every box before export. Incorrect or inconsistent boxes teach the model incorrect boundaries.
-Split: all images with the same Form Group ID are kept together in one split to reduce data leakage. Groups are assigned deterministically; with fewer than 10 groups, the final two groups are validation and test. Each split must contain Photo and Signature examples overall, but individual images may contain only one class or neither. Images without a saved group ID are treated as individual legacy groups. Group IDs do not detect near-duplicates automatically; use the same ID for all captures of the same original form.
+Split: all images with the same Group ID are kept together in one split to reduce data leakage. Groups are assigned deterministically; with fewer than 10 groups, the final two groups are validation and test. Images without a saved Group ID are treated as individual legacy groups. Group IDs do not detect near-duplicates automatically; use the same ID for related images.
 """
             zip.putNextEntry(ZipEntry("README.txt")); zip.write(note.toByteArray()); zip.closeEntry()
         }
