@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,6 +81,9 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var groupIds by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var activeBox by remember { mutableStateOf<LabelBox?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var importingImages by remember { mutableStateOf(false) }
+    var importProgress by remember { mutableFloatStateOf(0f) }
+    var importProgressLabel by remember { mutableStateOf("") }
     var fullScreen by remember { mutableStateOf(false) }
     var builderTab by remember { mutableStateOf("Annotate") }
     var builderMenu by remember { mutableStateOf(false) }
@@ -173,27 +177,53 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     val addImagesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) scope.launch {
             busy = true
+            importingImages = true
+            importProgress = 0f
+            importProgressLabel = "Preparing import…"
             try {
-                withContext(Dispatchers.IO) {
-                    val dir = File(context.filesDir, "dataset-projects/$projectId/train/images").apply { mkdirs() }
-                    uris.forEachIndexed { i, uri ->
+                val dir = File(context.filesDir, "dataset-projects/$projectId/train/images")
+                dir.mkdirs()
+                val previousPaths = libraryImages.map { it.absolutePath }.toSet()
+                uris.forEachIndexed { i, uri ->
+                    importProgressLabel = "Importing image ${i + 1} of ${uris.size}"
+                    withContext(Dispatchers.IO) {
                         val mime = context.contentResolver.getType(uri)?.lowercase(Locale.ROOT).orEmpty()
-                        val ext = when (mime) { "image/png" -> "png"; "image/webp" -> "webp"; else -> "jpg" }
+                        val displayName = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                            if (cursor.moveToFirst()) cursor.getString(0) else null
+                        }
+                        val namedExtension = displayName?.substringAfterLast('.', "")?.lowercase(Locale.ROOT).orEmpty()
+                        val ext = when {
+                            namedExtension in listOf("jpg", "jpeg", "png", "webp") -> namedExtension
+                            mime == "image/png" -> "png"
+                            mime == "image/webp" -> "webp"
+                            mime == "image/jpeg" -> "jpg"
+                            else -> error("Unsupported image format: ${displayName ?: mime.ifBlank { "unknown" }}. Please choose JPG, PNG, or WebP.")
+                        }
                         var out = File(dir, "added_${System.currentTimeMillis()}_${i}.$ext")
                         while (out.exists()) out = File(dir, "added_${System.currentTimeMillis()}_${i}_${System.nanoTime()}.$ext")
-                        context.contentResolver.openInputStream(uri)?.use { input -> out.outputStream().use { output -> input.copyTo(output) } }
-                            ?: error("Could not open selected image")
-                        check(out.length() > 0L) { "Selected image is empty" }
+                        try {
+                            context.contentResolver.openInputStream(uri)?.use { input ->
+                                out.outputStream().buffered().use { output -> input.copyTo(output, DEFAULT_BUFFER_SIZE) }
+                            } ?: error("Could not open selected image")
+                            check(out.length() > 0L) { "Selected image is empty" }
+                        } catch (e: Exception) {
+                            out.delete()
+                            throw e
+                        }
                     }
+                    importProgress = (i + 1).toFloat() / uris.size
                 }
-                val dir = File(context.filesDir, "dataset-projects/$projectId/train/images")
-                val previousPaths = libraryImages.map { it.absolutePath }.toSet()
                 val refreshed = dir.listFiles()?.filter { it.isFile && it.extension.lowercase(Locale.ROOT) in listOf("jpg", "jpeg", "png", "webp") }?.sortedBy { it.name.lowercase(Locale.ROOT) }.orEmpty()
                 libraryImages = refreshed
                 index = refreshed.indexOfFirst { it.absolutePath !in previousPaths }.takeIf { it >= 0 } ?: 0
-                status = "${uris.size} image(s) added. Label objects present, then Save."
+                status = "${uris.size} image(s) added without resizing or re-encoding. Original image quality preserved."
             } catch (e: Exception) { status = "Add images failed: " + (e.message ?: "unknown error") }
-            finally { busy = false }
+            finally {
+                importingImages = false
+                importProgress = 0f
+                importProgressLabel = ""
+                busy = false
+            }
         }
     }
     DisposableEffect(bitmap) {
@@ -329,6 +359,23 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         }
                     }
                 )
+                if (importingImages) {
+                    Column(
+                        Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 16.dp, vertical = 7.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            LText(importProgressLabel, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = Color(0xFF334155))
+                            LText("${(importProgress * 100).toInt()}%", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color(0xFF145DDE))
+                        }
+                        LinearProgressIndicator(
+                            progress = { importProgress.coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)),
+                            color = Color(0xFF145DDE),
+                            trackColor = Color(0xFFE5EAF2),
+                        )
+                    }
+                }
                 Row(Modifier.fillMaxWidth().background(Color(0xFFF4F7FC)).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     listOf("Annotate", "Images", "Classes", "Info").forEach { tab ->
                         FilterChip(
