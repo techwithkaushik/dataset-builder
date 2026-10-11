@@ -289,29 +289,55 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         }
                     }
                 )
-                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth().background(Color(0xFFF4F7FC)).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     listOf("Annotate", "Images", "Classes", "Info").forEach { tab ->
                         FilterChip(
                             selected = builderTab == tab,
                             onClick = { builderTab = tab },
-                            label = { Text(tab, maxLines = 1) },
+                            label = { Text(tab, maxLines = 1, fontWeight = if (builderTab == tab) FontWeight.Bold else FontWeight.Medium) },
                             modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF145DDE),
+                                selectedLabelColor = Color.White,
+                                containerColor = Color.White,
+                                labelColor = Color(0xFF34445C),
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = builderTab == tab,
+                                borderColor = Color(0xFFE2E9F4),
+                                selectedBorderColor = Color(0xFF145DDE),
+                            ),
                         )
                     }
                 }
             }
         },
         bottomBar = {
-            if (!fullScreen) Surface(shadowElevation = 8.dp) {
-                Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            if (!fullScreen) Surface(color = Color.White, shadowElevation = 8.dp) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         classes.forEach { cls ->
                             val count = boxes.count { it.type == cls }
                             FilterChip(
                                 selected = selected == cls,
                                 onClick = { selected = cls },
-                                label = { Text("${cls.title}  $count", maxLines = 1, softWrap = false) },
+                                label = { Text("${cls.title}  $count", maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold) },
                                 modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(11.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = cls.color,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = cls.color.copy(alpha = .09f),
+                                    labelColor = cls.color,
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = selected == cls,
+                                    borderColor = cls.color.copy(alpha = .28f),
+                                    selectedBorderColor = cls.color,
+                                ),
                             )
                         }
                     }
@@ -350,7 +376,16 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     val tiny = boxes.count { (it.r - it.l) * (it.b - it.t) < 0.0005f || it.r - it.l < 0.005f || it.b - it.t < 0.005f }
                     if (oversized > 0 || tiny > 0) Text("Review annotations: $oversized unusually large and $tiny very small box(es).", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     Text("Objects annotated: ${boxes.size}  •  Classes: ${classes.size}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    Text("$saved/${libraryImages.size} saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Annotation progress", style = MaterialTheme.typography.labelMedium, color = Color(0xFF52647D), modifier = Modifier.weight(1f))
+                        Text("$saved / ${libraryImages.size} saved", style = MaterialTheme.typography.labelMedium, color = Color(0xFF145DDE), fontWeight = FontWeight.Bold)
+                    }
+                    LinearProgressIndicator(
+                        progress = { if (libraryImages.isEmpty()) 0f else saved.toFloat() / libraryImages.size.toFloat() },
+                        modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)),
+                        color = Color(0xFF145DDE),
+                        trackColor = Color(0xFFE7EDF7),
+                    )
                     LazyRow(state = thumbnailListState, horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
                         items(libraryImages, key = { it.absolutePath }) { item ->
                             val itemIndex = libraryImages.indexOf(item)
@@ -361,9 +396,10 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
                             Column(
                                 Modifier.width(84.dp)
-                                    .border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                    .background(if (itemIndex == index) Color(0xFFEAF1FF) else Color(0xFFF8FAFD), RoundedCornerShape(12.dp))
+                                    .border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFE2E9F4), RoundedCornerShape(12.dp))
                                     .clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }
-                                    .padding(4.dp),
+                                    .padding(5.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(3.dp),
                             ) {
