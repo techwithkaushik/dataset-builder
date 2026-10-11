@@ -690,7 +690,6 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                     }
                                 }
                             }
-                            IconButton(onClick = { builderMenu = true }, modifier = Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF252A32))) { Icon(androidx.compose.material.icons.Icons.Default.Add, contentDescription = "Add class", tint = Color.White) }
                         }
                     }
                 }
