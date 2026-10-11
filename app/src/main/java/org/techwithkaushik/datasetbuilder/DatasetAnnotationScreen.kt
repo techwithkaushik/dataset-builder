@@ -319,7 +319,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             if (!fullScreen && builderTab == "Annotate") Surface(color = Color.White, shadowElevation = 8.dp) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Annotations (\${boxes.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
+                        Text("Annotations (${boxes.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
                         TextButton(onClick = { builderMenu = true }) { Text("Manage", color = Color(0xFF145DDE)) }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -333,7 +333,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         }
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Images (\${libraryImages.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
+                        Text("Images (${libraryImages.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
                         TextButton(onClick = { builderTab = "Images" }) { Text("Sort: Name ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
                         androidx.compose.material3.IconButton(onClick = { builderTab = "Images" }, modifier = Modifier.size(34.dp)) { Text("⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
                     }
@@ -354,7 +354,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { if (index > 0) { index--; activeBox = null; status = "Previous image" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 9.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F4FA), contentColor = Color(0xFF17243A)), border = null) { Text("←  Previous", fontWeight = FontWeight.SemiBold) }
-                        Text("\${if (libraryImages.isEmpty()) 0 else index + 1} / \${libraryImages.size}", modifier = Modifier.widthIn(min = 54.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = Color(0xFF26364C))
+                        Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", modifier = Modifier.widthIn(min = 54.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = Color(0xFF26364C))
                         Button(onClick = { saveAndNext() }, enabled = image != null && !busy && index < libraryImages.lastIndex, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 9.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { Text("Next  →", fontWeight = FontWeight.SemiBold) }
                     }
                 }
