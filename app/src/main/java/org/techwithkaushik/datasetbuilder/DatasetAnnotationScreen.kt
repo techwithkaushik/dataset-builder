@@ -13,9 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -480,47 +478,84 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 Modifier.fillMaxSize()
                     .clip(RoundedCornerShape(if (fullScreen) 0.dp else 16.dp))
                     .background(Color(0xFF101216))
-                    .pointerInput(fullScreen, index) {
-                        if (fullScreen) {
-                            awaitEachGesture {
-                                    var previousDistance = 0f
-                                    var previousCentroid = Offset.Zero
-                                    do {
-                                        val event = awaitPointerEvent()
-                                        val pressed = event.changes.filter { it.pressed }
-                                        if (pressed.size >= 2) {
-                                            val centroid = pressed.map { it.position }.reduce { a, b -> a + b } / pressed.size.toFloat()
-                                            val distance = pressed.sumOf { (it.position - centroid).getDistance().toDouble() }.toFloat() / pressed.size
-                                            if (previousDistance > 0f && distance > 0f) {
-                                                val oldScale = zoomScale
-                                                val nextScale = (oldScale * (distance / previousDistance)).coerceIn(1f, 4f)
-                                                val center = Offset(size.width / 2f, size.height / 2f)
-                                                val pan = centroid - previousCentroid
-                                                val focus = centroid - center
-                                                val factor = nextScale / oldScale
-                                                val proposedOffset = Offset(
-                                                    focus.x + pan.x + (zoomOffset.x - focus.x) * factor,
-                                                    focus.y + pan.y + (zoomOffset.y - focus.y) * factor,
-                                                )
-                                                zoomScale = nextScale
-                                                if (nextScale <= 1f) {
-                                                    zoomOffset = Offset.Zero
-                                                } else {
-                                                    val fitScale = minOf(size.width.toFloat() / bitmap.width, size.height.toFloat() / bitmap.height)
-                                                    val imageW = bitmap.width * fitScale * nextScale
-                                                    val imageH = bitmap.height * fitScale * nextScale
-                                                    val maxX = ((imageW - size.width) / 2f).coerceAtLeast(0f)
-                                                    val maxY = ((imageH - size.height) / 2f).coerceAtLeast(0f)
-                                                    zoomOffset = Offset(proposedOffset.x.coerceIn(-maxX, maxX), proposedOffset.y.coerceIn(-maxY, maxY))
-                                                }
-                                            }
-                                            previousDistance = distance
-                                            previousCentroid = centroid
-                                            pressed.forEach { it.consume() }
-                                        } else {
-                                            previousDistance = 0f
+                    .pointerInput(fullScreen, index, selected, bitmap) {
+                        awaitEachGesture {
+                            val down = awaitPointerEvent()
+                            val firstDown = down.changes.firstOrNull { it.pressed } ?: return@awaitEachGesture
+                            var start = firstDown.position
+                            var previousCentroid = Offset.Zero
+                            var previousDistance = 0f
+                            var moved = false
+                            var multi = false
+                            var lastPoint = start
+                            var currentBox: LabelBox? = null
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val pressed = event.changes.filter { it.pressed }
+                                if (pressed.isEmpty()) break
+                                if (pressed.size >= 2) {
+                                    multi = true
+                                    val centroid = pressed.map { it.position }.reduce { p, q -> p + q } / pressed.size.toFloat()
+                                    val distance = pressed.sumOf { (it.position - centroid).getDistance().toDouble() }.toFloat() / pressed.size
+                                    if (fullScreen && previousDistance > 0f && distance > 0f) {
+                                        val oldScale = zoomScale.coerceAtLeast(1f)
+                                        val nextScale = (oldScale * distance / previousDistance).coerceIn(1f, 4f)
+                                        val center = Offset(size.width / 2f, size.height / 2f)
+                                        val focus = previousCentroid - center
+                                        val pan = centroid - previousCentroid
+                                        val factor = nextScale / oldScale
+                                        val proposed = Offset(
+                                            focus.x + pan.x + (zoomOffset.x - focus.x) * factor,
+                                            focus.y + pan.y + (zoomOffset.y - focus.y) * factor,
+                                        )
+                                        zoomScale = nextScale
+                                        if (nextScale <= 1f) zoomOffset = Offset.Zero else {
+                                            val fit = minOf(size.width.toFloat() / bitmap.width, size.height.toFloat() / bitmap.height)
+                                            val maxX = ((bitmap.width * fit * nextScale - size.width) / 2f).coerceAtLeast(0f)
+                                            val maxY = ((bitmap.height * fit * nextScale - size.height) / 2f).coerceAtLeast(0f)
+                                            zoomOffset = Offset(proposed.x.coerceIn(-maxX, maxX), proposed.y.coerceIn(-maxY, maxY))
                                         }
-                                    } while (event.changes.any { it.pressed })
+                                    }
+                                    previousDistance = distance
+                                    previousCentroid = centroid
+                                    pressed.forEach { it.consume() }
+                                } else {
+                                    previousDistance = 0f
+                                    val point = pressed.first().position
+                                    if ((point - start).getDistance() > 3f) moved = true
+                                    if (moved && !multi) {
+                                        val w = size.width.toFloat()
+                                        val h = size.height.toFloat()
+                                        val fit = minOf(w / bitmap.width, h / bitmap.height)
+                                        val dw = bitmap.width * fit * if (fullScreen) zoomScale else 1f
+                                        val dh = bitmap.height * fit * if (fullScreen) zoomScale else 1f
+                                        val ox = (w - dw) / 2f + if (fullScreen) zoomOffset.x else 0f
+                                        val oy = (h - dh) / 2f + if (fullScreen) zoomOffset.y else 0f
+                                        val x1 = ((minOf(start.x, point.x) - ox) / dw).coerceIn(0f, 1f)
+                                        val y1 = ((minOf(start.y, point.y) - oy) / dh).coerceIn(0f, 1f)
+                                        val x2 = ((maxOf(start.x, point.x) - ox) / dw).coerceIn(0f, 1f)
+                                        val y2 = ((maxOf(start.y, point.y) - oy) / dh).coerceIn(0f, 1f)
+                                        currentBox = if (x2 > x1 && y2 > y1) LabelBox(selected, x1, y1, x2, y2) else null
+                                        activeBox = currentBox
+                                    }
+                                    lastPoint = point
+                                    pressed.forEach { it.consume() }
+                                }
+                            }
+                            if (multi) {
+                                activeBox = null
+                            } else if (moved) {
+                                currentBox?.let { box ->
+                                    if (box.r - box.l > .005f && box.b - box.t > .005f) {
+                                        image?.let { current ->
+                                            annotationsByImage = annotationsByImage + (current.absolutePath to (boxes + box))
+                                            if (current.absolutePath in savedPaths) dirtyPaths = dirtyPaths + current.absolutePath
+                                        }
+                                    }
+                                }
+                                activeBox = null
+                            } else if (!fullScreen) {
+                                fullScreen = true
                             }
                         }
                     },
@@ -541,32 +576,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 ).size(
                     with(androidx.compose.ui.platform.LocalDensity.current) { dw.toDp() },
                     with(androidx.compose.ui.platform.LocalDensity.current) { dh.toDp() }), contentScale = ContentScale.FillBounds)
-                Canvas(Modifier.fillMaxSize().pointerInput(index) { detectTapGestures(onTap = { if (!fullScreen) fullScreen = true }) }.pointerInput(index, selected, dw, dh, ox, oy) {
-                    var start: Offset? = null
-                    detectDragGestures(
-                        onDragStart = { start = it; activeBox = null },
-                        onDragEnd = {
-                            activeBox?.let { b ->
-                                if (b.r - b.l > .005f && b.b - b.t > .005f) {
-                                    image?.let { current ->
-                                        annotationsByImage = annotationsByImage + (current.absolutePath to (boxes + b))
-                                        if (current.absolutePath in savedPaths) dirtyPaths = dirtyPaths + current.absolutePath
-                                    }
-                                }
-                            }
-                            activeBox = null
-                            start = null
-                        },
-                        onDragCancel = { activeBox = null; start = null }
-                    ) { change, _ ->
-                        val a = start ?: change.position.also { start = it }
-                        val x1 = ((minOf(a.x, change.position.x) - ox) / dw).coerceIn(0f, 1f)
-                        val y1 = ((minOf(a.y, change.position.y) - oy) / dh).coerceIn(0f, 1f)
-                        val x2 = ((maxOf(a.x, change.position.x) - ox) / dw).coerceIn(0f, 1f)
-                        val y2 = ((maxOf(a.y, change.position.y) - oy) / dh).coerceIn(0f, 1f)
-                        if (x2 > x1 && y2 > y1) activeBox = LabelBox(selected, x1, y1, x2, y2)
-                    }
-                }) {
+                Canvas(Modifier.fillMaxSize()) {
+{
                     (boxes + listOfNotNull(activeBox)).forEach { b ->
                         drawRect(b.type.color, Offset(ox + b.l * dw, oy + b.t * dh),
                             Size((b.r - b.l) * dw, (b.b - b.t) * dh),
