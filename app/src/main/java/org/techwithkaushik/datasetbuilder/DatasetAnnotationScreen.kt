@@ -321,10 +321,10 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         },
         bottomBar = {
             if (!fullScreen && builderTab == "Annotate") Surface(color = Color.White, shadowElevation = 8.dp) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 1.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                    Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Annotations (${boxes.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
-                        TextButton(onClick = { builderMenu = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) { Text("Manage", color = Color(0xFF145DDE)) }
+                        Box(Modifier.clickable { builderMenu = true }.padding(horizontal = 8.dp, vertical = 3.dp)) { Text("Manage", color = Color(0xFF145DDE), style = MaterialTheme.typography.labelLarge) }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         classes.forEach { cls ->
@@ -336,17 +336,17 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Images (${libraryImages.size})", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color(0xFF182230))
                         Box {
-                            TextButton(onClick = { sortMenu = true }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("Sort: $imageSort ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
+                            Box(Modifier.clickable { sortMenu = true }.padding(horizontal = 5.dp, vertical = 3.dp)) { Text("Sort: $imageSort ⌄", style = MaterialTheme.typography.labelSmall, color = Color(0xFF334155)) }
                             DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
                                 listOf("Name", "Newest", "Oldest").forEach { option ->
                                     DropdownMenuItem(text = { Text(option) }, onClick = { imageSort = option; sortMenu = false })
                                 }
                             }
                         }
-                        androidx.compose.material3.IconButton(onClick = { searchVisible = !searchVisible; if (!searchVisible) imageSearch = "" }, modifier = Modifier.size(28.dp)) { Text(if (searchVisible) "×" else "⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
+                        Box(Modifier.size(28.dp).clickable { searchVisible = !searchVisible; if (!searchVisible) imageSearch = "" }, contentAlignment = Alignment.Center) { Text(if (searchVisible) "×" else "⌕", style = MaterialTheme.typography.titleLarge, color = Color(0xFF334155)) }
                     }
                     if (searchVisible) {
                         OutlinedTextField(value = imageSearch, onValueChange = { imageSearch = it }, singleLine = true, placeholder = { Text("Search images…") }, modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp), shape = RoundedCornerShape(10.dp), textStyle = MaterialTheme.typography.bodySmall)
@@ -365,8 +365,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             val thumbState = produceState<Bitmap?>(initialValue = null, key1 = item.absolutePath) { value = withContext(Dispatchers.IO) { decodeSampledBitmap(item, 150) } }
                             val thumb = thumbState.value
                             DisposableEffect(thumb) { onDispose { thumb?.recycle() } }
-                            Column(Modifier.width(70.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
+                            Column(Modifier.width(84.dp).clickable(enabled = !busy) { index = itemIndex; activeBox = null; status = item.name }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Box(Modifier.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF4F6F9)).border(if (itemIndex == index) 2.dp else 1.dp, if (itemIndex == index) Color(0xFF145DDE) else Color(0xFFD9E0E9), RoundedCornerShape(8.dp))) {
                                     if (thumb != null) Image(thumb.asImageBitmap(), item.name, Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
                                     if (itemIndex == index) Box(Modifier.align(Alignment.BottomEnd).padding(2.dp).size(17.dp).background(Color(0xFF145DDE), RoundedCornerShape(50)), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                                 }
@@ -375,9 +375,9 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         }
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(onClick = { if (index > 0) { index--; activeBox = null; status = "Previous image" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 6.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F4FA), contentColor = Color(0xFF17243A)), border = null) { Text("←  Previous", fontWeight = FontWeight.SemiBold) }
+                        OutlinedButton(onClick = { if (index > 0) { index--; activeBox = null; status = "Previous image" } }, enabled = index > 0 && !busy, modifier = Modifier.weight(1f).height(40.dp), shape = RoundedCornerShape(11.dp), contentPadding = PaddingValues(vertical = 2.dp), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F4FA), contentColor = Color(0xFF17243A)), border = null) { Text("←  Previous", fontWeight = FontWeight.SemiBold) }
                         Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", modifier = Modifier.widthIn(min = 54.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = Color(0xFF26364C))
-                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy && index < libraryImages.lastIndex, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp), contentPadding = PaddingValues(vertical = 6.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { Text("Next  →", fontWeight = FontWeight.SemiBold) }
+                        Button(onClick = { saveAndNext() }, enabled = image != null && !busy && index < libraryImages.lastIndex, modifier = Modifier.weight(1f).height(40.dp), shape = RoundedCornerShape(11.dp), contentPadding = PaddingValues(vertical = 2.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF075BFA))) { Text("Next  →", fontWeight = FontWeight.SemiBold) }
                     }
                 }
             } else if (!fullScreen) Surface(color = Color.White, shadowElevation = 4.dp) {
