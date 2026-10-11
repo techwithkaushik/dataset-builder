@@ -273,10 +273,11 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         topBar = {
             if (!fullScreen) Column {
                 TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
                     title = {
-                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Text(projectName, fontWeight = FontWeight.Bold, maxLines = 2, style = MaterialTheme.typography.titleMedium)
-                            Text("${libraryImages.size} images • ${savedPaths.size} saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(projectName, fontWeight = FontWeight.ExtraBold, maxLines = 1, style = MaterialTheme.typography.titleMedium, color = Color(0xFF17243A))
+                            Text("${libraryImages.size} images  ·  ${savedPaths.size} saved", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B), maxLines = 1)
                         }
                     },
                     navigationIcon = { androidx.compose.material3.IconButton(onClick = onExit) { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.ArrowBack, contentDescription = "Back to datasets") } },
@@ -316,7 +317,13 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
         },
         bottomBar = {
             if (!fullScreen) Surface(color = Color.White, shadowElevation = 8.dp) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Column(
+                    Modifier.fillMaxWidth()
+                        .heightIn(max = 390.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         classes.forEach { cls ->
                             val count = boxes.count { it.type == cls }
@@ -490,14 +497,25 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     Button(onClick = { builderTab = "Annotate" }) { Text("Return to annotation") }
                 }
             }
-        } else Box(Modifier.fillMaxSize().then(if (fullScreen) Modifier else Modifier.padding(padding)).background(Color(0xFF101216)).padding(if (fullScreen) 0.dp else 4.dp), contentAlignment = Alignment.Center) {
+        } else Box(
+            Modifier.fillMaxSize()
+                .then(if (fullScreen) Modifier else Modifier.padding(padding))
+                .background(Color(0xFF101216))
+                .padding(if (fullScreen) 0.dp else 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
             if (libraryImages.isEmpty()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("No dataset images yet", color = Color.White)
                     Button(onClick = { addImagesLauncher.launch(arrayOf("image/*")) }, enabled = !busy, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp), shape = RoundedCornerShape(8.dp)) { Text("Add images") }
                 }
             } else if (bitmap == null) Text("Image could not be opened", color = Color.White)
-            else BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            else BoxWithConstraints(
+                Modifier.fillMaxSize()
+                    .clip(RoundedCornerShape(if (fullScreen) 0.dp else 16.dp))
+                    .background(Color(0xFF101216)),
+                contentAlignment = Alignment.Center,
+            ) {
                 val w = constraints.maxWidth.toFloat()
                 val h = constraints.maxHeight.toFloat()
                 val scale = minOf(w / bitmap.width, h / bitmap.height)
