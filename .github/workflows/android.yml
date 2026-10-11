@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Build signed APK
+    name: Build Dataset Builder APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,7 +22,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-          submodules: false
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -38,33 +37,13 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
           validate-wrappers: false
 
-      - name: Decode Keystore
-        id: keystore
-        uses: timheuer/base64-to-file@v2.0
-        with:
-          fileName: dev_keystore.jks
-          encodedString: ${{ secrets.SIGNING_KEYSTORE }}
-
-      - name: Build signed APK
-        env:
-          SIGN_KEY_STORE: ${{ steps.keystore.outputs.filePath }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -x ./gradlew ]; then
-            ./gradlew :app:assembleRelease --no-daemon --build-cache --stacktrace
-          else
-            gradle :app:assembleRelease --no-daemon --build-cache --stacktrace
-          fi
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon --build-cache --stacktrace
 
       - name: Verify APK
-        shell: bash
         run: |
           set -euo pipefail
-          APK="app/build/outputs/apk/release/app-release.apk"
+          APK="app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
           ls -lh "$APK"
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
@@ -73,5 +52,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: dataset-builder
-          path: app/build/outputs/apk/release/app-release.apk
+          name: dataset-builder-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
