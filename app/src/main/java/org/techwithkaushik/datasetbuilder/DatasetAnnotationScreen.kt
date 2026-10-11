@@ -89,6 +89,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var searchVisible by remember { mutableStateOf(false) }
     var zoomScale by remember(index) { mutableFloatStateOf(1f) }
     var zoomOffset by remember(index) { mutableStateOf(Offset.Zero) }
+    var panMode by remember(index) { mutableStateOf(false) }
     var redoBoxes by remember(index) { mutableStateOf<List<List<LabelBox>>>(emptyList()) }
     var formGroupId by remember(index, libraryImages, groupIds) {
         mutableStateOf(libraryImages.getOrNull(index)?.let { groupIds[it.nameWithoutExtension] ?: it.nameWithoutExtension }.orEmpty())
@@ -478,7 +479,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 Modifier.fillMaxSize()
                     .clip(RoundedCornerShape(if (fullScreen) 0.dp else 16.dp))
                     .background(Color(0xFF101216))
-                    .pointerInput(fullScreen, index, selected, bitmap) {
+                    .pointerInput(fullScreen, index, selected, bitmap, panMode) {
                         awaitEachGesture {
                             val down = awaitPointerEvent()
                             val firstDown = down.changes.firstOrNull { it.pressed } ?: return@awaitEachGesture
@@ -487,6 +488,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             var previousDistance = 0f
                             var moved = false
                             var multi = false
+                            var lastPoint = start
                             var currentBox: LabelBox? = null
                             while (true) {
                                 val event = awaitPointerEvent()
@@ -502,14 +504,14 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                         // Keep the image point under the fingers stable while scaling.
                                         // The current centroid already includes two-finger panning.
                                         val center = Offset(size.width / 2f, size.height / 2f)
-                                        val focus = centroid - center
+                                        val previousFocus = previousCentroid - center
                                         val pan = centroid - previousCentroid
                                         val factor = nextScale / oldScale
-                                        // Scale around the current finger centroid and preserve the
-                                        // centroid movement so vertical and horizontal panning work.
+                                        // Transform the image point under the previous centroid to
+                                        // the current centroid, avoiding doubled pan movement.
                                         val proposed = Offset(
-                                            focus.x - (focus.x - zoomOffset.x) * factor + pan.x,
-                                            focus.y - (focus.y - zoomOffset.y) * factor + pan.y,
+                                            previousFocus.x - (previousFocus.x - zoomOffset.x) * factor + pan.x,
+                                            previousFocus.y - (previousFocus.y - zoomOffset.y) * factor + pan.y,
                                         )
                                         zoomScale = nextScale
                                         if (nextScale <= 1f) zoomOffset = Offset.Zero else {
@@ -532,22 +534,35 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                         val fit = minOf(w / bitmap.width, h / bitmap.height)
                                         val dw = bitmap.width * fit * if (fullScreen) zoomScale else 1f
                                         val dh = bitmap.height * fit * if (fullScreen) zoomScale else 1f
-                                        val ox = (w - dw) / 2f + if (fullScreen) zoomOffset.x else 0f
-                                        val oy = (h - dh) / 2f + if (fullScreen) zoomOffset.y else 0f
-                                        val x1 = ((minOf(start.x, point.x) - ox) / dw).coerceIn(0f, 1f)
-                                        val y1 = ((minOf(start.y, point.y) - oy) / dh).coerceIn(0f, 1f)
-                                        val x2 = ((maxOf(start.x, point.x) - ox) / dw).coerceIn(0f, 1f)
-                                        val y2 = ((maxOf(start.y, point.y) - oy) / dh).coerceIn(0f, 1f)
-                                        currentBox = if (x2 > x1 && y2 > y1) LabelBox(selected, x1, y1, x2, y2) else null
-                                        activeBox = currentBox
+                                        if (fullScreen && panMode) {
+                                            // In Move mode, a single-finger drag pans the zoomed image
+                                            // so content hidden behind the bottom toolbar can be brought into view.
+                                            val delta = point - lastPoint
+                                            val maxX = ((dw - w) / 2f).coerceAtLeast(0f)
+                                            val maxY = ((dh - h) / 2f).coerceAtLeast(0f)
+                                            zoomOffset = Offset(
+                                                (zoomOffset.x + delta.x).coerceIn(-maxX, maxX),
+                                                (zoomOffset.y + delta.y).coerceIn(-maxY, maxY),
+                                            )
+                                        } else if (!panMode) {
+                                            val ox = (w - dw) / 2f + if (fullScreen) zoomOffset.x else 0f
+                                            val oy = (h - dh) / 2f + if (fullScreen) zoomOffset.y else 0f
+                                            val x1 = ((minOf(start.x, point.x) - ox) / dw).coerceIn(0f, 1f)
+                                            val y1 = ((minOf(start.y, point.y) - oy) / dh).coerceIn(0f, 1f)
+                                            val x2 = ((maxOf(start.x, point.x) - ox) / dw).coerceIn(0f, 1f)
+                                            val y2 = ((maxOf(start.y, point.y) - oy) / dh).coerceIn(0f, 1f)
+                                            currentBox = if (x2 > x1 && y2 > y1) LabelBox(selected, x1, y1, x2, y2) else null
+                                            activeBox = currentBox
+                                        }
                                     }
+                                    lastPoint = point
                                     pressed.forEach { it.consume() }
                                 }
                             }
                             if (multi) {
                                 activeBox = null
                             } else if (moved) {
-                                currentBox?.let { box ->
+                                if (!panMode) currentBox?.let { box ->
                                     if (box.r - box.l > .005f && box.b - box.t > .005f) {
                                         image?.let { current ->
                                             annotationsByImage = annotationsByImage + (current.absolutePath to (boxes + box))
@@ -636,6 +651,20 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 }
                 Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 6.dp, vertical = 5.dp), color = Color(0xDD101216), shape = RoundedCornerShape(12.dp)) {
                     Column(Modifier.fillMaxWidth().padding(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (fullScreen) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Text(
+                                    if (panMode) "↔ Move image" else "▱ Draw boxes",
+                                    color = Color.White,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (panMode) Color(0xFF075BFA) else Color(0xFF343B46))
+                                        .clickable { panMode = !panMode; activeBox = null }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        }
                         LazyRow(state = thumbnailListState, horizontalArrangement = Arrangement.spacedBy(5.dp), contentPadding = PaddingValues(horizontal = 2.dp)) {
                             items(libraryImages, key = { it.absolutePath }) { item ->
                                 val itemIndex = libraryImages.indexOf(item)
