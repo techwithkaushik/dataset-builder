@@ -27,6 +27,9 @@ import org.json.JSONObject
 import java.text.DateFormat
 import java.util.Date
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val brand = Color(0xFF145DDE)
 private val canvas = Color(0xFFF4F7FC)
@@ -49,6 +52,8 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
     var delete by remember { mutableStateOf<Project?>(null) }
     var settings by remember { mutableStateOf(false) }
     var tab by remember { mutableIntStateOf(0) }
+    var deletingProjectId by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     fun persist(list: List<Project>) {
         projects = list
@@ -170,7 +175,45 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
     }
     if (create) ProjectDialog(null, { create = false }) { n, d, l -> save(n, d, l, null); create = false }
     edit?.let { old -> ProjectDialog(old, { edit = null }) { n, d, l -> save(n, d, l, old); edit = null } }
-    delete?.let { p -> AlertDialog(onDismissRequest = { delete = null }, title = { LText("Delete dataset?") }, text = { LText("Project details for “" + p.name + "” will be removed.") }, confirmButton = { TextButton(onClick = { persist(projects.filterNot { it.id == p.id }); delete = null }) { LText("Delete", color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { delete = null }) { LText("Cancel") } }) }
+    delete?.let { p ->
+        val isDeleting = deletingProjectId == p.id
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) delete = null },
+            title = { LText("Delete dataset?") },
+            text = {
+                LText("Project “${p.name}”, its images, annotations, group IDs and all project files will be permanently deleted. Original files outside this project will remain untouched.")
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isDeleting,
+                    onClick = {
+                        if (!isDeleting) scope.launch {
+                            deletingProjectId = p.id
+                            try {
+                                withContext(Dispatchers.IO) { deleteProjectWorkspace(context, p.id) }
+                                persist(projects.filterNot { it.id == p.id })
+                                delete = null
+                                Toast.makeText(context, "Dataset and related files deleted", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Delete failed: ${e.message ?: "unknown error"}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                deletingProjectId = null
+                            }
+                        }
+                    }
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        LText("Deleting…")
+                    } else LText("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !isDeleting, onClick = { delete = null }) { LText("Cancel") }
+            },
+        )
+    }
 }
 
 private fun formatUpdated(timestamp: Long): String {
@@ -293,4 +336,19 @@ private fun readProjects(prefs: android.content.SharedPreferences): List<Project
             Project(o.getString("id"), o.getString("name"), o.optString("description"), (0 until labels.length()).map { labels.getString(it) }, o.optLong("updated"))
         }
     }.getOrDefault(emptyList())
+}
+
+
+/**
+ * Deletes only this project's private workspace. Canonical-path checks prevent
+ * malformed project IDs from escaping the dataset-projects directory.
+ */
+private fun deleteProjectWorkspace(context: Context, projectId: String) {
+    require(projectId.isNotBlank() && projectId != "." && projectId != "..") { "Invalid project ID" }
+    val projectsRoot = java.io.File(context.filesDir, "dataset-projects").canonicalFile
+    val projectRoot = java.io.File(projectsRoot, projectId).canonicalFile
+    require(projectRoot.parentFile == projectsRoot && projectRoot.name == projectId) { "Invalid project path" }
+    if (projectRoot.exists() && !projectRoot.deleteRecursively()) {
+        throw java.io.IOException("Could not remove all project files")
+    }
 }
