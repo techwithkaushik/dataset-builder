@@ -488,6 +488,29 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                     }
                 }
             }
+            if (!fullScreen && builderTab == "Annotate" && libraryImages.isNotEmpty()) {
+                Row(Modifier.align(Alignment.TopStart).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(color = Color(0xCC20252D), shape = RoundedCornerShape(10.dp)) {
+                        Text("${index + 1} / ${libraryImages.size}", modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                Row(Modifier.align(Alignment.TopEnd).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(color = Color(0xCC20252D), shape = RoundedCornerShape(10.dp)) {
+                        Text("⌕", modifier = Modifier.clickable { fullScreen = true }.padding(horizontal = 10.dp, vertical = 4.dp), color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    }
+                    Surface(color = Color(0xCC20252D), shape = RoundedCornerShape(10.dp)) {
+                        Text("⛶", modifier = Modifier.clickable { fullScreen = true }.padding(horizontal = 10.dp, vertical = 7.dp), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                Row(Modifier.align(Alignment.CenterStart).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Surface(color = Color(0xB820252D), shape = RoundedCornerShape(50.dp), modifier = Modifier.padding(start = 4.dp).clickable(enabled = index > 0 && !busy) { index--; activeBox = null }) {
+                        Text("‹", modifier = Modifier.padding(horizontal = 11.dp, vertical = 3.dp), color = Color.White, style = MaterialTheme.typography.headlineMedium)
+                    }
+                    Surface(color = Color(0xB820252D), shape = RoundedCornerShape(50.dp), modifier = Modifier.padding(end = 4.dp).clickable(enabled = index < libraryImages.lastIndex && !busy) { index++; activeBox = null }) {
+                        Text("›", modifier = Modifier.padding(horizontal = 11.dp, vertical = 3.dp), color = Color.White, style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+            }
             if (fullScreen) {
                 Surface(modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(10.dp), color = Color(0xEE101216), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
