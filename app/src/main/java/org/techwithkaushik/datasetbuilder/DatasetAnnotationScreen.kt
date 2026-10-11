@@ -512,8 +512,8 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 val ox = (w - dw) / 2f + panX
                 val oy = (h - dh) / 2f + panY
                 Image(bitmap.asImageBitmap(), "Imported form", Modifier.offset(
-                    x = with(androidx.compose.ui.platform.LocalDensity.current) { ox.toDp() },
-                    y = with(androidx.compose.ui.platform.LocalDensity.current) { oy.toDp() }
+                    x = with(androidx.compose.ui.platform.LocalDensity.current) { panX.toDp() },
+                    y = with(androidx.compose.ui.platform.LocalDensity.current) { panY.toDp() }
                 ).size(
                     with(androidx.compose.ui.platform.LocalDensity.current) { dw.toDp() },
                     with(androidx.compose.ui.platform.LocalDensity.current) { dh.toDp() }), contentScale = ContentScale.FillBounds)
