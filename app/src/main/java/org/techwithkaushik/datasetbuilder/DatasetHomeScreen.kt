@@ -169,7 +169,7 @@ private fun ProjectDialog(project: Project?, dismiss: () -> Unit, save: (String,
                 )
             }
         },
-        confirmButton = { Button(enabled = name.isNotBlank(), onClick = { save(name, description, listOf("Photo", "Signature")) }) { Text(if (project == null) "Create Dataset" else "Save Changes") } },
+        confirmButton = { Button(enabled = name.isNotBlank() && classesText.split(",").any { it.trim().isNotBlank() }, onClick = { save(name, description, classesText.split(",").map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }) }) { Text(if (project == null) "Create Dataset" else "Save Changes") } },
         dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } },
     )
 }
