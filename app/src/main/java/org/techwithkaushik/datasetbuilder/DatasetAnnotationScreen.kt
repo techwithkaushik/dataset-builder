@@ -487,7 +487,6 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             var previousDistance = 0f
                             var moved = false
                             var multi = false
-                            var lastPoint = start
                             var currentBox: LabelBox? = null
                             while (true) {
                                 val event = awaitPointerEvent()
@@ -500,13 +499,14 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                     if (fullScreen && previousDistance > 0f && distance > 0f) {
                                         val oldScale = zoomScale.coerceAtLeast(1f)
                                         val nextScale = (oldScale * distance / previousDistance).coerceIn(1f, 4f)
+                                        // Keep the image point under the fingers stable while scaling.
+                                        // The current centroid already includes two-finger panning.
                                         val center = Offset(size.width / 2f, size.height / 2f)
-                                        val focus = previousCentroid - center
-                                        val pan = centroid - previousCentroid
+                                        val focus = centroid - center
                                         val factor = nextScale / oldScale
                                         val proposed = Offset(
-                                            focus.x + pan.x + (zoomOffset.x - focus.x) * factor,
-                                            focus.y + pan.y + (zoomOffset.y - focus.y) * factor,
+                                            focus.x - (focus.x - zoomOffset.x) * factor,
+                                            focus.y - (focus.y - zoomOffset.y) * factor,
                                         )
                                         zoomScale = nextScale
                                         if (nextScale <= 1f) zoomOffset = Offset.Zero else {
@@ -538,7 +538,6 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                                         currentBox = if (x2 > x1 && y2 > y1) LabelBox(selected, x1, y1, x2, y2) else null
                                         activeBox = currentBox
                                     }
-                                    lastPoint = point
                                     pressed.forEach { it.consume() }
                                 }
                             }
