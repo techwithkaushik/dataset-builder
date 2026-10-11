@@ -81,41 +81,41 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                         Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Hub, null, tint = brand, modifier = Modifier.size(25.dp)) }
                     }
                     Column(Modifier.weight(1f).padding(start = 11.dp)) {
-                        Text("Dataset Builder", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
-                        Text("Create, manage and annotate datasets", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B))
+                        LText("Dataset Builder", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
+                        LText("Create, manage and annotate datasets", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B))
                     }
                     IconButton(onClick = { settings = true; tab = 2 }) { Icon(Icons.Default.Settings, "Settings", tint = Color(0xFF263449)) }
                     Surface(color = brand, shape = RoundedCornerShape(50), modifier = Modifier.size(34.dp)) {
-                        Box(contentAlignment = Alignment.Center) { Text("D", color = Color.White, fontWeight = FontWeight.Bold) }
+                        Box(contentAlignment = Alignment.Center) { LText("D", color = Color.White, fontWeight = FontWeight.Bold) }
                     }
                 }
             }
         },
         bottomBar = {
             if (!settings && tab != 2) NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
-                NavigationBarItem(tab == 0, { tab = 0; settings = false }, icon = { Icon(Icons.Default.FolderOpen, null) }, label = { Text("Datasets") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
-                NavigationBarItem(tab == 1, { tab = 1; settings = false }, icon = { Icon(Icons.Default.Insights, null) }, label = { Text("Stats") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
-                NavigationBarItem(tab == 2, { tab = 2; settings = true }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
+                NavigationBarItem(tab == 0, { tab = 0; settings = false }, icon = { Icon(Icons.Default.FolderOpen, null) }, label = { LText("Datasets") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
+                NavigationBarItem(tab == 1, { tab = 1; settings = false }, icon = { Icon(Icons.Default.Insights, null) }, label = { LText("Stats") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
+                NavigationBarItem(tab == 2, { tab = 2; settings = true }, icon = { Icon(Icons.Default.Settings, null) }, label = { LText("Settings") }, colors = NavigationBarItemDefaults.colors(selectedIconColor = brand, selectedTextColor = brand, indicatorColor = brand.copy(alpha = .10f)))
             }
         },
-        floatingActionButton = { if (tab == 0 && !settings) ExtendedFloatingActionButton(onClick = { create = true }, icon = { Icon(Icons.Default.Add, null) }, text = { Text("Create Dataset") }, containerColor = brand, contentColor = Color.White) }
+        floatingActionButton = { if (tab == 0 && !settings) ExtendedFloatingActionButton(onClick = { create = true }, icon = { Icon(Icons.Default.Add, null) }, text = { LText("Create Dataset") }, containerColor = brand, contentColor = Color.White) }
     ) { pad ->
         when {
             settings || tab == 2 -> SettingsPage(Modifier.padding(pad)) { settings = false; tab = 0 }
             tab == 1 -> Column(Modifier.fillMaxSize().padding(pad).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Dataset overview", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Projects: " + projects.size)
-                Text("Annotation classes: " + projects.sumOf { it.labels.size })
+                LText("Dataset overview", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                LText("Projects: " + projects.size)
+                LText("Annotation classes: " + projects.sumOf { it.labels.size })
             }
             else -> Column(Modifier.fillMaxSize().padding(pad)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(query, { query = it }, Modifier.weight(1f), singleLine = true, placeholder = { Text("Search datasets…", style = MaterialTheme.typography.bodyMedium) }, leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF52647D)) }, shape = RoundedCornerShape(24.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = cardBorder, focusedBorderColor = brand))
+                    OutlinedTextField(query, { query = it }, Modifier.weight(1f), singleLine = true, placeholder = { LText("Search datasets…", style = MaterialTheme.typography.bodyMedium) }, leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF52647D)) }, shape = RoundedCornerShape(24.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = cardBorder, focusedBorderColor = brand))
                     Spacer(Modifier.width(8.dp))
                     FilledIconButton(onClick = { filter = if (filter == "All") "Recent" else "All" }, shape = RoundedCornerShape(15.dp), colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White, contentColor = Color(0xFF263449)), modifier = Modifier.size(52.dp)) { Icon(Icons.Default.FilterList, "Filter") }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("All", "Recent", "A–Z", "Modified").forEach { item ->
-                        FilterChip(selected = filter == item, onClick = { filter = item }, label = { Text(item, fontWeight = if (filter == item) FontWeight.Bold else FontWeight.Medium) }, shape = RoundedCornerShape(22.dp), colors = FilterChipDefaults.filterChipColors(selectedContainerColor = brand, selectedLabelColor = Color.White, containerColor = Color.White), border = FilterChipDefaults.filterChipBorder(enabled = true, selected = filter == item, borderColor = cardBorder, selectedBorderColor = brand))
+                        FilterChip(selected = filter == item, onClick = { filter = item }, label = { LText(item, fontWeight = if (filter == item) FontWeight.Bold else FontWeight.Medium) }, shape = RoundedCornerShape(22.dp), colors = FilterChipDefaults.filterChipColors(selectedContainerColor = brand, selectedLabelColor = Color.White, containerColor = Color.White), border = FilterChipDefaults.filterChipBorder(enabled = true, selected = filter == item, borderColor = cardBorder, selectedBorderColor = brand))
                     }
                 }
                 val visible = projects.filter { it.name.contains(query, true) || it.description.contains(query, true) }
@@ -123,8 +123,8 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                 if (visible.isEmpty()) {
                     Column(Modifier.fillMaxSize().padding(30.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                         Icon(Icons.Default.FolderOpen, null, tint = brand, modifier = Modifier.size(52.dp))
-                        Text("No datasets found", style = MaterialTheme.typography.titleLarge)
-                        Button(onClick = { create = true }) { Icon(Icons.Default.Add, null); Text("Create Dataset") }
+                        LText("No datasets found", style = MaterialTheme.typography.titleLarge)
+                        Button(onClick = { create = true }) { Icon(Icons.Default.Add, null); LText("Create Dataset") }
                     }
                 } else LazyColumn(contentPadding = PaddingValues(start = 14.dp, top = 10.dp, end = 14.dp, bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
                     items(visible, key = { it.id }) { p ->
@@ -138,8 +138,8 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                                 }
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(p.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    Text(p.description.ifBlank { "No description added" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    LText(p.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    LText(p.description.ifBlank { "No description added" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     Spacer(Modifier.height(8.dp))
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                         DatasetMetaPill(Icons.Default.Image, "${imageCount} images", Color(0xFF1768E8))
@@ -149,16 +149,16 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
                                     Spacer(Modifier.height(4.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         Icon(Icons.Default.Schedule, null, tint = Color(0xFF64748B), modifier = Modifier.size(13.dp))
-                                        Text("Updated " + formatUpdated(p.updated), style = MaterialTheme.typography.labelSmall, color = Color(0xFF52647D), fontWeight = FontWeight.Medium)
+                                        LText("Updated " + formatUpdated(p.updated), style = MaterialTheme.typography.labelSmall, color = Color(0xFF52647D), fontWeight = FontWeight.Medium)
                                     }
                                 }
                                 var expanded by remember { mutableStateOf(false) }
                                 Box {
                                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, "Project actions") }
                                     DropdownMenu(expanded, { expanded = false }) {
-                                        DropdownMenuItem(text = { Text("Edit Project") }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { expanded = false; edit = p })
-                                        DropdownMenuItem(text = { Text("Duplicate Dataset") }, leadingIcon = { Icon(Icons.Default.ContentCopy, null) }, onClick = { expanded = false; save(p.name + " Copy", p.description, p.labels, null) })
-                                        DropdownMenuItem(text = { Text("Delete Dataset", color = MaterialTheme.colorScheme.error) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }, onClick = { expanded = false; delete = p })
+                                        DropdownMenuItem(text = { LText("Edit Project") }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { expanded = false; edit = p })
+                                        DropdownMenuItem(text = { LText("Duplicate Dataset") }, leadingIcon = { Icon(Icons.Default.ContentCopy, null) }, onClick = { expanded = false; save(p.name + " Copy", p.description, p.labels, null) })
+                                        DropdownMenuItem(text = { LText("Delete Dataset", color = MaterialTheme.colorScheme.error) }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }, onClick = { expanded = false; delete = p })
                                     }
                                 }
                             }
@@ -170,7 +170,7 @@ private fun ProjectHome(context: Context, onOpen: (Project) -> Unit) {
     }
     if (create) ProjectDialog(null, { create = false }) { n, d, l -> save(n, d, l, null); create = false }
     edit?.let { old -> ProjectDialog(old, { edit = null }) { n, d, l -> save(n, d, l, old); edit = null } }
-    delete?.let { p -> AlertDialog(onDismissRequest = { delete = null }, title = { Text("Delete dataset?") }, text = { Text("Project details for “" + p.name + "” will be removed.") }, confirmButton = { TextButton(onClick = { persist(projects.filterNot { it.id == p.id }); delete = null }) { Text("Delete", color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { delete = null }) { Text("Cancel") } }) }
+    delete?.let { p -> AlertDialog(onDismissRequest = { delete = null }, title = { LText("Delete dataset?") }, text = { LText("Project details for “" + p.name + "” will be removed.") }, confirmButton = { TextButton(onClick = { persist(projects.filterNot { it.id == p.id }); delete = null }) { LText("Delete", color = MaterialTheme.colorScheme.error) } }, dismissButton = { TextButton(onClick = { delete = null }) { LText("Cancel") } }) }
 }
 
 private fun formatUpdated(timestamp: Long): String {
@@ -192,7 +192,7 @@ private fun DatasetMetaPill(icon: androidx.compose.ui.graphics.vector.ImageVecto
     Surface(color = tint.copy(alpha = .09f), shape = RoundedCornerShape(9.dp)) {
         Row(Modifier.padding(horizontal = 7.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, null, tint = tint, modifier = Modifier.size(13.dp))
-            Text(label, color = tint, style = MaterialTheme.typography.labelSmall, maxLines = 1, fontWeight = FontWeight.SemiBold)
+            LText(label, color = tint, style = MaterialTheme.typography.labelSmall, maxLines = 1, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -204,25 +204,25 @@ private fun ProjectDialog(project: Project?, dismiss: () -> Unit, save: (String,
     var classesText by remember(project?.id) { mutableStateOf(project?.labels?.joinToString(", ").orEmpty()) }
     AlertDialog(
         onDismissRequest = dismiss,
-        title = { Text(if (project == null) "Create New Dataset" else "Edit Project") },
+        title = { LText(if (project == null) "Create New Dataset" else "Edit Project") },
         text = {
             Column(Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Project name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(description, { description = it }, label = { Text("Description (optional)") }, minLines = 2, modifier = Modifier.fillMaxWidth())
-                Text("Annotation classes", fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(name, { name = it }, label = { LText("Project name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(description, { description = it }, label = { LText("Description (optional)") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                LText("Annotation classes", fontWeight = FontWeight.SemiBold)
                 OutlinedTextField(
                     value = classesText,
                     onValueChange = { classesText = it },
-                    label = { Text("Class names") },
-                    placeholder = { Text("Person, Vehicle, Animal") },
-                    supportingText = { Text("Separate class names with commas. Their order determines YOLO class IDs starting at 0.") },
+                    label = { LText("Class names") },
+                    placeholder = { LText("Person, Vehicle, Animal") },
+                    supportingText = { LText("Separate class names with commas. Their order determines YOLO class IDs starting at 0.") },
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
-        confirmButton = { Button(enabled = name.isNotBlank() && classesText.split(",").any { it.trim().isNotBlank() }, onClick = { save(name, description, classesText.split(",").map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }) }) { Text(if (project == null) "Create Dataset" else "Save Changes") } },
-        dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } },
+        confirmButton = { Button(enabled = name.isNotBlank() && classesText.split(",").any { it.trim().isNotBlank() }, onClick = { save(name, description, classesText.split(",").map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }) }) { LText(if (project == null) "Create Dataset" else "Save Changes") } },
+        dismissButton = { TextButton(onClick = dismiss) { LText("Cancel") } },
     )
 }
 
@@ -235,22 +235,22 @@ private fun SettingsPage(modifier: Modifier = Modifier, back: () -> Unit) {
     var languageExpanded by remember { mutableStateOf(false) }
     var language by remember { mutableStateOf(preferences.getString("app_language", "English") ?: "English") }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = back) { Icon(Icons.Default.ArrowBack, null) }; Text("Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
-        Text("Language", color = brand, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = back) { Icon(Icons.Default.ArrowBack, null) }; LText("Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
+        LText("Language", color = brand, fontWeight = FontWeight.Bold)
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Language, null, tint = brand)
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                        Text("App language", fontWeight = FontWeight.SemiBold)
-                        Text("Choose the language used by the app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        LText("App language", fontWeight = FontWeight.SemiBold)
+                        LText("Choose the language used by the app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Box {
-                        TextButton(onClick = { languageExpanded = true }) { Text(language); Icon(Icons.Default.ArrowDropDown, null) }
+                        TextButton(onClick = { languageExpanded = true }) { LText(language); Icon(Icons.Default.ArrowDropDown, null) }
                         DropdownMenu(expanded = languageExpanded, onDismissRequest = { languageExpanded = false }) {
                             listOf("English", "हिन्दी", "Español", "Français", "العربية").forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option) },
+                                    text = { LText(option) },
                                     leadingIcon = { if (language == option) Icon(Icons.Default.Check, null, tint = brand) },
                                     onClick = {
                                         language = option
@@ -265,21 +265,21 @@ private fun SettingsPage(modifier: Modifier = Modifier, back: () -> Unit) {
                 }
             }
         }
-        Text("Appearance", color = brand, fontWeight = FontWeight.Bold)
+        LText("Appearance", color = brand, fontWeight = FontWeight.Bold)
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.DarkMode, null); Text("Theme", Modifier.weight(1f).padding(start = 10.dp))
-                    Box { TextButton(onClick = { expanded = true }) { Text(theme); Icon(Icons.Default.ArrowDropDown, null) }; DropdownMenu(expanded, { expanded = false }) { listOf("System default", "Light", "Dark").forEach { DropdownMenuItem(text = { Text(it) }, onClick = { theme = it; expanded = false }) } } }
+                    Icon(Icons.Default.DarkMode, null); LText("Theme", Modifier.weight(1f).padding(start = 10.dp))
+                    Box { TextButton(onClick = { expanded = true }) { LText(theme); Icon(Icons.Default.ArrowDropDown, null) }; DropdownMenu(expanded, { expanded = false }) { listOf("System default", "Light", "Dark").forEach { DropdownMenuItem(text = { LText(it) }, onClick = { theme = it; expanded = false }) } } }
                 }
                 HorizontalDivider()
-                ListItem(headlineContent = { Text("Dynamic color") }, leadingContent = { Icon(Icons.Default.Palette, null) }, trailingContent = { var enabled by remember { mutableStateOf(true) }; Switch(enabled, { enabled = it }) })
+                ListItem(headlineContent = { LText("Dynamic color") }, leadingContent = { Icon(Icons.Default.Palette, null) }, trailingContent = { var enabled by remember { mutableStateOf(true) }; Switch(enabled, { enabled = it }) })
             }
         }
-        Text("Data & Storage", color = brand, fontWeight = FontWeight.Bold)
-        Card(shape = RoundedCornerShape(16.dp)) { Column { ListItem(headlineContent = { Text("Dataset storage") }, supportingContent = { Text("App-private YOLO workspace") }, leadingContent = { Icon(Icons.Default.Folder, null) }); HorizontalDivider(); ListItem(headlineContent = { Text("Export format") }, supportingContent = { Text("YOLO dataset ZIP") }, leadingContent = { Icon(Icons.Default.Archive, null) }) } }
-        Text("About", color = brand, fontWeight = FontWeight.Bold)
-        ListItem(headlineContent = { Text("Dataset Builder") }, supportingContent = { Text("Version 1.0.0 • org.techwithkaushik") }, leadingContent = { Icon(Icons.Default.Info, null) })
+        LText("Data & Storage", color = brand, fontWeight = FontWeight.Bold)
+        Card(shape = RoundedCornerShape(16.dp)) { Column { ListItem(headlineContent = { LText("Dataset storage") }, supportingContent = { LText("App-private YOLO workspace") }, leadingContent = { Icon(Icons.Default.Folder, null) }); HorizontalDivider(); ListItem(headlineContent = { LText("Export format") }, supportingContent = { LText("YOLO dataset ZIP") }, leadingContent = { Icon(Icons.Default.Archive, null) }) } }
+        LText("About", color = brand, fontWeight = FontWeight.Bold)
+        ListItem(headlineContent = { LText("Dataset Builder") }, supportingContent = { LText("Version 1.0.0 • org.techwithkaushik") }, leadingContent = { Icon(Icons.Default.Info, null) })
     }
 }
 
