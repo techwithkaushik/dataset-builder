@@ -90,6 +90,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var imageSort by remember { mutableStateOf("Name") }
     var searchVisible by remember { mutableStateOf(false) }
     var zoomScale by remember(index) { mutableFloatStateOf(1f) }
+    var zoomOffset by remember(index) { mutableStateOf(Offset.Zero) }
     var redoBoxes by remember(index) { mutableStateOf<List<List<LabelBox>>>(emptyList()) }
     var formGroupId by remember(index, libraryImages, groupIds) {
         mutableStateOf(libraryImages.getOrNull(index)?.let { groupIds[it.nameWithoutExtension] ?: it.nameWithoutExtension }.orEmpty())
@@ -479,7 +480,26 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 Modifier.fillMaxSize()
                     .clip(RoundedCornerShape(if (fullScreen) 0.dp else 16.dp))
                     .background(Color(0xFF101216))
-                    .pointerInput(fullScreen, index) { detectTransformGestures { _, _, zoomChange, _ -> if (fullScreen) zoomScale = (zoomScale * zoomChange).coerceIn(1f, 4f) } },
+                    .pointerInput(fullScreen, index) {
+                        detectTransformGestures { _, pan, zoomChange, _ ->
+                            if (fullScreen) {
+                                val nextScale = (zoomScale * zoomChange).coerceIn(1f, 4f)
+                                zoomScale = nextScale
+                                if (nextScale <= 1f) zoomOffset = Offset.Zero
+                                else {
+                                    val fitScale = minOf(size.width.toFloat() / bitmap.width, size.height.toFloat() / bitmap.height)
+                                    val imageW = bitmap.width * fitScale * nextScale
+                                    val imageH = bitmap.height * fitScale * nextScale
+                                    val maxX = ((imageW - size.width) / 2f).coerceAtLeast(0f)
+                                    val maxY = ((imageH - size.height) / 2f).coerceAtLeast(0f)
+                                    zoomOffset = Offset(
+                                        (zoomOffset.x + pan.x).coerceIn(-maxX, maxX),
+                                        (zoomOffset.y + pan.y).coerceIn(-maxY, maxY),
+                                    )
+                                }
+                            }
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 val w = constraints.maxWidth.toFloat()
@@ -487,9 +507,14 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 val scale = minOf(w / bitmap.width, h / bitmap.height)
                 val dw = bitmap.width * scale * (if (fullScreen) zoomScale else 1f)
                 val dh = bitmap.height * scale * (if (fullScreen) zoomScale else 1f)
-                val ox = (w - dw) / 2f
-                val oy = (h - dh) / 2f
-                Image(bitmap.asImageBitmap(), "Imported form", Modifier.size(
+                val panX = if (fullScreen) zoomOffset.x else 0f
+                val panY = if (fullScreen) zoomOffset.y else 0f
+                val ox = (w - dw) / 2f + panX
+                val oy = (h - dh) / 2f + panY
+                Image(bitmap.asImageBitmap(), "Imported form", Modifier.offset(
+                    x = with(androidx.compose.ui.platform.LocalDensity.current) { ox.toDp() },
+                    y = with(androidx.compose.ui.platform.LocalDensity.current) { oy.toDp() }
+                ).size(
                     with(androidx.compose.ui.platform.LocalDensity.current) { dw.toDp() },
                     with(androidx.compose.ui.platform.LocalDensity.current) { dh.toDp() }), contentScale = ContentScale.FillBounds)
                 Canvas(Modifier.fillMaxSize().pointerInput(index) { detectTapGestures(onTap = { if (!fullScreen) fullScreen = true }) }.pointerInput(index, selected, dw, dh, ox, oy) {
@@ -589,9 +614,9 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         }
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("${if (libraryImages.isEmpty()) 0 else index + 1} / ${libraryImages.size}", color = Color.LightGray, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
-                            Text("⌕−", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale - .25f).coerceAtLeast(1f) }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("−", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale - .25f).coerceAtLeast(1f); if (zoomScale <= 1f) zoomOffset = Offset.Zero }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
                             Text("${(zoomScale * 100).toInt()}%", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                            Text("⌕+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(4f) }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
+                            Text("+", color = Color.White, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { zoomScale = (zoomScale + .25f).coerceAtMost(4f) }.padding(horizontal = 9.dp, vertical = 3.dp), style = MaterialTheme.typography.titleLarge)
                             Text("↶", color = Color.White, modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to boxes.dropLast(1)); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
                             Text("↷", color = Color.White, modifier = Modifier.clickable { val next = redoBoxes.lastOrNull(); if (next != null) { image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to next); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; redoBoxes = redoBoxes.dropLast(1); activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
                             Text("⌫", color = Color(0xFFFF9B9B), modifier = Modifier.clickable { if (boxes.isNotEmpty()) { redoBoxes = redoBoxes + listOf(boxes); image?.let { annotationsByImage = annotationsByImage + (it.absolutePath to emptyList()); if (it.absolutePath in savedPaths) dirtyPaths = dirtyPaths + it.absolutePath }; activeBox = null } }.padding(horizontal = 7.dp, vertical = 3.dp), style = MaterialTheme.typography.titleMedium)
