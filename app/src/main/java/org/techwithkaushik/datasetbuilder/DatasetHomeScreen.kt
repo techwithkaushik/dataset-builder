@@ -254,6 +254,7 @@ private fun SettingsPage(modifier: Modifier = Modifier, back: () -> Unit) {
                                     leadingIcon = { if (language == option) Icon(Icons.Default.Check, null, tint = brand) },
                                     onClick = {
                                         language = option
+                                        AppLanguageState.language = option
                                         preferences.edit().putString("app_language", option).apply()
                                         languageExpanded = false
                                         Toast.makeText(context, "Language preference saved", Toast.LENGTH_SHORT).show()
