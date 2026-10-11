@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Dataset Builder APK
+    name: Build signed release APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,20 +37,33 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
           validate-wrappers: false
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon --build-cache --stacktrace
+      - name: Restore development signing key
+        id: keystore
+        uses: timheuer/base64-to-file@v2.0
+        with:
+          fileName: dev_keystore.jks
+          encodedString: ${{ secrets.SIGNING_KEYSTORE }}
 
-      - name: Verify APK
+      - name: Build release APK
+        env:
+          SIGN_KEY_STORE: ${{ steps.keystore.outputs.filePath }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        run: gradle :app:assembleRelease --no-daemon --build-cache --stacktrace
+
+      - name: Verify release APK
+        shell: bash
         run: |
           set -euo pipefail
-          APK="app/build/outputs/apk/debug/app-debug.apk"
-          test -f "$APK"
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
           ls -lh "$APK"
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
           "$APKSIGNER" verify --verbose "$APK"
 
-      - name: Upload APK
+      - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: dataset-builder-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: dataset-builder-release
+          path: app/build/outputs/apk/release/app-release.apk
