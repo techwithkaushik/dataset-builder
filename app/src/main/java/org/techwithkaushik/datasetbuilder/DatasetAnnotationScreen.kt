@@ -46,19 +46,20 @@ import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-private enum class LabelClass(val id: Int, val title: String, val color: Color) {
-    PHOTO(0, "Photo", Color(0xFF00C853)),
-    SIGNATURE(1, "Signature", Color(0xFFFF6D00))
-}
+private data class LabelClass(val id: Int, val title: String, val color: Color)
 private data class LabelBox(val type: LabelClass, val l: Float, val t: Float, val r: Float, val b: Float)
 
 @Composable
-internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onMessage: (String) -> Unit, projectId: String = "default", projectName: String = "Dataset Builder") {
+internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onMessage: (String) -> Unit, projectId: String = "default", projectName: String = "Dataset", classNames: List<String> = listOf("Object")) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val classes = remember(classNames) {
+        val palette = listOf(Color(0xFF1768E8), Color(0xFF168B58), Color(0xFFE67E22), Color(0xFF8E44AD), Color(0xFF008B8B), Color(0xFFC0392B), Color(0xFF596275), Color(0xFFB33939))
+        classNames.mapIndexed { i, name -> LabelClass(i, name, palette[i % palette.size]) }
+    }
     var libraryImages by remember { mutableStateOf<List<File>>(emptyList()) }
     var index by remember { mutableIntStateOf(0) }
-    var selected by remember { mutableStateOf(LabelClass.PHOTO) }
+    var selected by remember(classes) { mutableStateOf(classes.first()) }
     var annotationsByImage by remember { mutableStateOf<Map<String, List<LabelBox>>>(emptyMap()) }
     var groupIds by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var activeBox by remember { mutableStateOf<LabelBox?>(null) }
@@ -72,7 +73,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
     var confirmRemove by remember { mutableStateOf(false) }
     var savedPaths by remember(images) { mutableStateOf<Set<String>>(emptySet()) }
     var dirtyPaths by remember(images) { mutableStateOf<Set<String>>(emptySet()) }
-    var status by remember { mutableStateOf("Photo चुनें और फोटो के चारों ओर drag करें") }
+    var status by remember { mutableStateOf("Select a class, then drag around each object to annotate it.") }
     val image = libraryImages.getOrNull(index)
     val boxes = image?.let { annotationsByImage[it.absolutePath].orEmpty() }.orEmpty()
     val saved = savedPaths.size
@@ -120,7 +121,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                         val parsed = label.readLines().mapNotNull { line ->
                             val v = line.trim().split(Regex("\\s+"))
                             if (v.size != 5) null else runCatching {
-                                val cls = LabelClass.values().first { it.id == v[0].toInt() }
+                                val cls = classes.first { it.id == v[0].toInt() }
                                 val cx = v[1].toFloat(); val cy = v[2].toFloat()
                                 val bw = v[3].toFloat(); val bh = v[4].toFloat()
                                 LabelBox(cls, (cx - bw / 2f).coerceIn(0f, 1f), (cy - bh / 2f).coerceIn(0f, 1f),
@@ -298,7 +299,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
             if (!fullScreen) Surface(shadowElevation = 8.dp) {
                 Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LabelClass.values().forEach { cls ->
+                        classes.forEach { cls ->
                             val count = boxes.count { it.type == cls }
                             FilterChip(
                                 selected = selected == cls,
@@ -422,7 +423,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                 }
                 "Classes" -> Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Annotation classes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    LabelClass.values().forEach { cls ->
+                    classes.forEach { cls ->
                         val count = libraryImages.sumOf { file -> annotationsByImage[file.absolutePath].orEmpty().count { it.type == cls } }
                         ElevatedCard(shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -509,7 +510,7 @@ internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onM
                             Button(onClick = { fullScreen = false }, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp), shape = RoundedCornerShape(10.dp)) { Text("Done") }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            LabelClass.values().forEach { cls ->
+                            classes.forEach { cls ->
                                 val count = boxes.count { it.type == cls }
                                 FilterChip(selected = selected == cls, onClick = { selected = cls }, label = { Text("${cls.title} (ID: ${cls.id}) · $count", maxLines = 1, softWrap = false) }, modifier = Modifier.weight(1f))
                             }
