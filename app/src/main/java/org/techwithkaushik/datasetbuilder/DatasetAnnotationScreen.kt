@@ -69,7 +69,6 @@ private data class LabelBox(val type: LabelClass, val l: Float, val t: Float, va
 @Composable
 internal fun DatasetAnnotationScreen(images: List<File>, onExit: () -> Unit, onMessage: (String) -> Unit, projectId: String = "default", projectName: String = "Dataset", classNames: List<String> = listOf("Object")) {
     val context = LocalContext.current
-    BackHandler(enabled = fullScreen) { fullScreen = false }
     val scope = rememberCoroutineScope()
     val configuredClassNames = classNames.map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { listOf("Object") }
     val classes = remember(configuredClassNames) {
