@@ -228,10 +228,43 @@ private fun ProjectDialog(project: Project?, dismiss: () -> Unit, save: (String,
 
 @Composable
 private fun SettingsPage(modifier: Modifier = Modifier, back: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val preferences = remember { context.getSharedPreferences("dataset_projects", Context.MODE_PRIVATE) }
     var theme by remember { mutableStateOf("System default") }
     var expanded by remember { mutableStateOf(false) }
+    var languageExpanded by remember { mutableStateOf(false) }
+    var language by remember { mutableStateOf(preferences.getString("app_language", "English") ?: "English") }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = back) { Icon(Icons.Default.ArrowBack, null) }; Text("Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
+        Text("Language", color = brand, fontWeight = FontWeight.Bold)
+        Card(shape = RoundedCornerShape(16.dp)) {
+            Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Language, null, tint = brand)
+                    Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                        Text("App language", fontWeight = FontWeight.SemiBold)
+                        Text("Choose the language used by the app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Box {
+                        TextButton(onClick = { languageExpanded = true }) { Text(language); Icon(Icons.Default.ArrowDropDown, null) }
+                        DropdownMenu(expanded = languageExpanded, onDismissRequest = { languageExpanded = false }) {
+                            listOf("English", "हिन्दी", "Español", "Français", "العربية").forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    leadingIcon = { if (language == option) Icon(Icons.Default.Check, null, tint = brand) },
+                                    onClick = {
+                                        language = option
+                                        preferences.edit().putString("app_language", option).apply()
+                                        languageExpanded = false
+                                        Toast.makeText(context, "Language preference saved", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
         Text("Appearance", color = brand, fontWeight = FontWeight.Bold)
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(14.dp)) {
